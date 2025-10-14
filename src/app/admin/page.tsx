@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Shield, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Shield, CheckCircle, XCircle, AlertCircle, MapPin } from 'lucide-react';
 import Link from 'next/link';
 
 interface Painter {
@@ -61,6 +61,55 @@ export default function AdminPage() {
 
       setPainters(paintersWithDetails);
     } catch (error) {
+      console.error('Erreur lors du chargement:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const approvePainter = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('painters')
+        .update({ status: 'approved' })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setPainters(painters.map(p => 
+        p.id === id ? { ...p, status: 'approved' } : p
+      ));
+      alert('Formateur approuvé avec succès !');
+    } catch (error) {
+      console.error('Erreur:', error);
+      alert('Erreur lors de l\'approbation');
+    }
+  };
+
+  const rejectPainter = async (id: string) => {
+    if (!rejectionReason.trim()) {
+      alert('Veuillez indiquer une raison de rejet');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('painters')
+        .update({ 
+          status: 'rejected',
+          rejection_reason: rejectionReason 
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setPainters(painters.map(p => 
+        p.id === id ? { ...p, status: 'rejected', rejection_reason: rejectionReason } : p
+      ));
+      setRejectionReason('');
+      setSelectedPainter(null);
+      alert('Formateur rejeté');
+    } catch (error) {
       console.error('Erreur:', error);
       alert('Erreur lors du rejet');
     }
@@ -83,7 +132,6 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Admin Header */}
       <header className="bg-gradient-to-r from-purple-900 to-indigo-900 text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -104,7 +152,6 @@ export default function AdminPage() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Stats Cards */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-md p-6">
             <div className="flex items-center justify-between">
@@ -135,7 +182,6 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Pending Painters */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Annonces en attente de modération</h2>
           {pendingPainters.length === 0 ? (
@@ -159,7 +205,10 @@ export default function AdminPage() {
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <h4 className="font-bold text-xl text-gray-800 mb-1">{painter.name}</h4>
-                            <p className="text-sm text-gray-600 mb-1">{painter.location}</p>
+                            <div className="flex items-center gap-1 text-sm text-gray-600 mb-1">
+                              <MapPin className="w-4 h-4" />
+                              <span>{painter.location}</span>
+                            </div>
                             <span className="text-sm text-gray-500">
                               Soumis le {new Date(painter.submitted_date).toLocaleDateString('fr-FR')}
                             </span>
@@ -216,7 +265,6 @@ export default function AdminPage() {
           )}
         </div>
 
-        {/* Approved Painters */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Annonces approuvées ({approvedPainters.length})</h2>
           <div className="bg-white rounded-xl shadow-md overflow-hidden">
@@ -254,7 +302,6 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Rejected Painters */}
         {rejectedPainters.length > 0 && (
           <div>
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Annonces rejetées ({rejectedPainters.length})</h2>
@@ -293,13 +340,12 @@ export default function AdminPage() {
         )}
       </div>
 
-      {/* Rejection Modal */}
       {selectedPainter && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-4">Rejeter l'annonce</h3>
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Rejeter l&apos;annonce</h3>
             <p className="text-gray-600 mb-4">
-              Vous êtes sur le point de rejeter l'annonce de <strong>{selectedPainter.name}</strong>. 
+              Vous êtes sur le point de rejeter l&apos;annonce de <strong>{selectedPainter.name}</strong>. 
               Veuillez indiquer la raison :
             </p>
             <textarea
@@ -330,53 +376,4 @@ export default function AdminPage() {
       )}
     </div>
   );
-}('Erreur lors du chargement:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const approvePainter = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('painters')
-        .update({ status: 'approved' })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setPainters(painters.map(p => 
-        p.id === id ? { ...p, status: 'approved' } : p
-      ));
-      alert('Formateur approuvé avec succès !');
-    } catch (error) {
-      console.error('Erreur:', error);
-      alert('Erreur lors de l\'approbation');
-    }
-  };
-
-  const rejectPainter = async (id: string) => {
-    if (!rejectionReason.trim()) {
-      alert('Veuillez indiquer une raison de rejet');
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('painters')
-        .update({ 
-          status: 'rejected',
-          rejection_reason: rejectionReason 
-        })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setPainters(painters.map(p => 
-        p.id === id ? { ...p, status: 'rejected', rejection_reason: rejectionReason } : p
-      ));
-      setRejectionReason('');
-      setSelectedPainter(null);
-      alert('Formateur rejeté');
-    } catch (error) {
-      console.error
+}
