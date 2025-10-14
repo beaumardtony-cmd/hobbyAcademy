@@ -4,10 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { User, LogOut, Settings, Palette, Shield } from 'lucide-react';
 import Link from 'next/link';
-
-interface UserMenuProps {
-  user: any;
-}
+import type { UserMenuProps } from '@/types/supabase';
 
 export default function UserMenu({ user }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Shield, CheckCircle, XCircle, AlertCircle, MapPin } from 'lucide-react';
 import Link from 'next/link';
+import type { User } from '@supabase/supabase-js';
 
 interface Painter {
   id: string;
@@ -25,8 +26,10 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [rejectionReason, setRejectionReason] = useState('');
   const [selectedPainter, setSelectedPainter] = useState<Painter | null>(null);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+
+  // ... reste du code identique
 
   useEffect(() => {
     checkAuth();

@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { User, Mail, Calendar, Palette, ArrowLeft, Shield } from 'lucide-react';
+import { User as UserIcon, Mail, Calendar, Palette, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import type { User } from '@supabase/supabase-js';
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string>('student');
 
@@ -24,7 +25,6 @@ export default function DashboardPage() {
 
     setUser(user);
 
-    // Récupérer le rôle de l'utilisateur
     const { data: roles } = await supabase
       .from('user_roles')
       .select('role')
@@ -37,11 +37,20 @@ export default function DashboardPage() {
     setLoading(false);
   };
 
+  const getInitials = (name: string): string => {
+    return name
+      .split(' ')
+      .map((n: string) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <User className="w-16 h-16 text-purple-600 animate-pulse mx-auto mb-4" />
+          <UserIcon className="w-16 h-16 text-purple-600 animate-pulse mx-auto mb-4" />
           <p className="text-gray-600">Chargement...</p>
         </div>
       </div>
@@ -51,14 +60,13 @@ export default function DashboardPage() {
   if (!user) return null;
 
   const userName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Utilisateur';
-  const memberSince = new Date(user.created_at).toLocaleDateString('fr-FR', {
+  const memberSince = new Date(user.created_at || Date.now()).toLocaleDateString('fr-FR', {
     year: 'numeric',
     month: 'long'
   });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b border-purple-100">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
@@ -77,16 +85,14 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Profile Card */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
           <div className="bg-gradient-to-r from-purple-600 to-pink-600 h-32"></div>
           <div className="px-8 pb-8">
             <div className="flex items-end gap-6 -mt-16 mb-6">
               <div className="w-32 h-32 rounded-full bg-white p-2 shadow-lg">
                 <div className="w-full h-full rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center text-white text-4xl font-bold">
-                  {userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                  {getInitials(userName)}
                 </div>
               </div>
               <div className="flex-1 mt-4">
@@ -109,7 +115,7 @@ export default function DashboardPage() {
 
               <div className="bg-blue-50 rounded-xl p-4">
                 <div className="flex items-center gap-3 mb-2">
-                  <User className="w-5 h-5 text-blue-600" />
+                  <UserIcon className="w-5 h-5 text-blue-600" />
                   <span className="text-sm text-gray-600">Rôle</span>
                 </div>
                 <p className="font-semibold text-gray-800 capitalize">
@@ -128,7 +134,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Quick Actions */}
         <div className="grid md:grid-cols-2 gap-6 mb-6">
           <Link href="/my-courses">
             <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition cursor-pointer">
@@ -148,7 +153,7 @@ export default function DashboardPage() {
             <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition cursor-pointer">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center">
-                  <User className="w-6 h-6 text-pink-600" />
+                  <UserIcon className="w-6 h-6 text-pink-600" />
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-800 mb-1">Devenir formateur</h3>
@@ -159,7 +164,6 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        {/* Account Information */}
         <div className="bg-white rounded-xl shadow-md p-6">
           <h3 className="text-xl font-bold text-gray-800 mb-4">Informations du compte</h3>
           <div className="space-y-4">

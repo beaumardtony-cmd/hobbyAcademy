@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Search, MapPin, Star, Clock, Euro, Filter, User, BookOpen, Palette } from 'lucide-react';
+import { Search, MapPin, Clock, Euro, Filter, User as UserIcon, BookOpen, Palette } from 'lucide-react';
 import Link from 'next/link';
 import AuthModal from '@/components/AuthModal';
 import UserMenu from '@/components/UserMenu';
+import type { User } from '@supabase/supabase-js';
+import Image from 'next/image';
 
 interface Painter {
   id: string;
@@ -27,7 +29,7 @@ export default function Home() {
   const [selectedLevel, setSelectedLevel] = useState('all');
   const [selectedStyle, setSelectedStyle] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
 
@@ -35,7 +37,7 @@ export default function Home() {
     fetchPainters();
     checkUser();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
     });
 
@@ -140,7 +142,7 @@ export default function Home() {
                     onClick={() => openAuthModal('signup')}
                     className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition"
                   >
-                    <User className="w-4 h-4" />
+                    <UserIcon className="w-4 h-4" />
                     S&apos;inscrire
                   </button>
                 </>
@@ -228,10 +230,12 @@ export default function Home() {
             <div key={painter.id} className="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow overflow-hidden">
               <div className="p-6">
                 <div className="flex items-start gap-4 mb-4">
-                  <img 
+                  <Image 
                     src={painter.profile_image_url} 
                     alt={painter.name}
-                    className="w-16 h-16 rounded-full bg-purple-100"
+                    width={64}
+                    height={64}
+                    className="rounded-full bg-purple-100"
                   />
                   <div className="flex-1">
                     <h4 className="font-bold text-lg text-gray-800 mb-1">{painter.name}</h4>

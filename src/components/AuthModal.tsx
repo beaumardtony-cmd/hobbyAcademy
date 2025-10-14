@@ -3,12 +3,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { X, Mail, Lock, User as UserIcon } from 'lucide-react';
-
-interface AuthModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  defaultMode?: 'login' | 'signup';
-}
+import type { AuthModalProps, Message } from '@/types/supabase';
 
 export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: AuthModalProps) {
   const [mode, setMode] = useState<'login' | 'signup'>(defaultMode);
@@ -16,7 +11,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'error' | 'success', text: string } | null>(null);
+  const [message, setMessage] = useState<Message | null>(null);
 
   if (!isOpen) return null;
 
@@ -27,7 +22,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
 
     try {
       if (mode === 'signup') {
-        const { data, error } = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -49,7 +44,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
           setMessage(null);
         }, 3000);
       } else {
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
@@ -66,10 +61,11 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
           window.location.reload();
         }, 1000);
       }
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Une erreur est survenue';
       setMessage({
         type: 'error',
-        text: error.message || 'Une erreur est survenue'
+        text: errorMessage
       });
     } finally {
       setLoading(false);
