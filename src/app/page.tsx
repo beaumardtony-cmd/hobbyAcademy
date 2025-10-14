@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Search, MapPin, Star, Clock, Euro, Filter, User, BookOpen, Palette } from 'lucide-react';
 import Link from 'next/link';
+import AuthModal from '@/components/AuthModal';
+import UserMenu from '@/components/UserMenu';
 
 interface Painter {
   id: string;
@@ -25,14 +27,30 @@ export default function Home() {
   const [selectedLevel, setSelectedLevel] = useState('all');
   const [selectedStyle, setSelectedStyle] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
 
   useEffect(() => {
     fetchPainters();
+    checkUser();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user || null);
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
+
+  const checkUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setUser(user);
+  };
 
   const fetchPainters = async () => {
     try {
-      // Récupérer les formateurs approuvés
       const { data: paintersData, error: paintersError } = await supabase
         .from('painters')
         .select('*')
@@ -40,7 +58,6 @@ export default function Home() {
 
       if (paintersError) throw paintersError;
 
-      // Pour chaque formateur, récupérer ses styles et niveaux
       const paintersWithDetails = await Promise.all(
         (paintersData || []).map(async (painter) => {
           const { data: stylesData } = await supabase
@@ -80,6 +97,11 @@ export default function Home() {
     return matchesSearch && matchesLevel && matchesStyle;
   });
 
+  const openAuthModal = (mode: 'login' | 'signup') => {
+    setAuthMode(mode);
+    setAuthModalOpen(true);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -97,23 +119,32 @@ export default function Home() {
       <header className="bg-white shadow-sm border-b border-purple-100">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2">
               <Palette className="w-8 h-8 text-purple-600" />
               <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                 PaintMini Academy
               </h1>
-            </div>
-            <div className="flex gap-3">
-              <Link href="/admin">
-                <button className="flex items-center gap-2 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition">
-                  <User className="w-4 h-4" />
-                  Admin
-                </button>
-              </Link>
-              <button className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">
-                <User className="w-4 h-4" />
-                Devenir formateur
-              </button>
+            </Link>
+            <div className="flex items-center gap-3">
+              {user ? (
+                <UserMenu user={user} />
+              ) : (
+                <>
+                  <button 
+                    onClick={() => openAuthModal('login')}
+                    className="px-4 py-2 text-gray-700 hover:text-purple-600 transition font-medium"
+                  >
+                    Se connecter
+                  </button>
+                  <button 
+                    onClick={() => openAuthModal('signup')}
+                    className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition"
+                  >
+                    <User className="w-4 h-4" />
+                    S&apos;inscrire
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -238,7 +269,10 @@ export default function Home() {
                     <span className="text-2xl font-bold text-gray-800">{painter.hourly_rate}</span>
                     <span className="text-gray-500 text-sm">/heure</span>
                   </div>
-                  <button className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition font-medium">
+                  <button 
+                    onClick={() => user ? alert('Réservation à venir') : openAuthModal('signup')}
+                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition font-medium"
+                  >
                     Réserver
                   </button>
                 </div>
@@ -255,6 +289,13 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={authModalOpen} 
+        onClose={() => setAuthModalOpen(false)}
+        defaultMode={authMode}
+      />
     </div>
   );
 }

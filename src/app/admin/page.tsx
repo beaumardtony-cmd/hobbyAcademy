@@ -25,10 +25,41 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [rejectionReason, setRejectionReason] = useState('');
   const [selectedPainter, setSelectedPainter] = useState<Painter | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    fetchAllPainters();
+    checkAuth();
   }, []);
+
+  const checkAuth = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      window.location.href = '/';
+      return;
+    }
+
+    setUser(user);
+
+    // Vérifier si l'utilisateur est admin (optionnel)
+    const { data: roles } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .single();
+
+    if (roles) {
+      setIsAdmin(true);
+      fetchAllPainters();
+    } else {
+      // Pour le moment, on permet l'accès à tous les utilisateurs connectés
+      // Vous pouvez changer cela plus tard
+      setIsAdmin(true);
+      fetchAllPainters();
+    }
+  };
 
   const fetchAllPainters = async () => {
     try {
