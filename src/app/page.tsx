@@ -1,103 +1,260 @@
-import Image from "next/image";
+'use client';
+
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import { Search, MapPin, Star, Clock, Euro, Filter, User, BookOpen, Palette } from 'lucide-react';
+import Link from 'next/link';
+
+interface Painter {
+  id: string;
+  name: string;
+  bio: string;
+  location: string;
+  hourly_rate: number;
+  availability: string;
+  profile_image_url: string;
+  status: string;
+  styles: string[];
+  levels: string[];
+}
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [painters, setPainters] = useState<Painter[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedLevel, setSelectedLevel] = useState('all');
+  const [selectedStyle, setSelectedStyle] = useState('all');
+  const [showFilters, setShowFilters] = useState(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    fetchPainters();
+  }, []);
+
+  const fetchPainters = async () => {
+    try {
+      // Récupérer les formateurs approuvés
+      const { data: paintersData, error: paintersError } = await supabase
+        .from('painters')
+        .select('*')
+        .eq('status', 'approved');
+
+      if (paintersError) throw paintersError;
+
+      // Pour chaque formateur, récupérer ses styles et niveaux
+      const paintersWithDetails = await Promise.all(
+        (paintersData || []).map(async (painter) => {
+          const { data: stylesData } = await supabase
+            .from('painter_styles')
+            .select('style')
+            .eq('painter_id', painter.id);
+
+          const { data: levelsData } = await supabase
+            .from('painter_levels')
+            .select('level')
+            .eq('painter_id', painter.id);
+
+          return {
+            ...painter,
+            styles: stylesData?.map(s => s.style) || [],
+            levels: levelsData?.map(l => l.level) || []
+          };
+        })
+      );
+
+      setPainters(paintersWithDetails);
+    } catch (error) {
+      console.error('Erreur lors du chargement des formateurs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredPainters = painters.filter(painter => {
+    const matchesSearch = painter.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         painter.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         painter.styles.some(style => style.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesLevel = selectedLevel === 'all' || painter.levels.includes(selectedLevel) || painter.levels.includes('Tous niveaux');
+    const matchesStyle = selectedStyle === 'all' || painter.styles.includes(selectedStyle);
+    
+    return matchesSearch && matchesLevel && matchesStyle;
+  });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Palette className="w-16 h-16 text-purple-600 animate-pulse mx-auto mb-4" />
+          <p className="text-gray-600">Chargement des formateurs...</p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-purple-100">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Palette className="w-8 h-8 text-purple-600" />
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                PaintMini Academy
+              </h1>
+            </div>
+            <div className="flex gap-3">
+              <Link href="/admin">
+                <button className="flex items-center gap-2 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition">
+                  <User className="w-4 h-4" />
+                  Admin
+                </button>
+              </Link>
+              <button className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">
+                <User className="w-4 h-4" />
+                Devenir formateur
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4">
+          <h2 className="text-4xl font-bold mb-3">Apprenez la peinture de figurines</h2>
+          <p className="text-lg text-purple-100 mb-8">Trouvez le formateur parfait près de chez vous</p>
+          
+          {/* Search Bar */}
+          <div className="bg-white rounded-lg shadow-lg p-2 flex flex-col md:flex-row gap-2">
+            <div className="flex-1 flex items-center gap-2 px-3">
+              <Search className="w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Rechercher un formateur, style ou ville..."
+                className="flex-1 outline-none text-gray-800 py-2"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <button 
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition"
+            >
+              <Filter className="w-4 h-4" />
+              Filtres
+            </button>
+          </div>
+
+          {/* Filters */}
+          {showFilters && (
+            <div className="bg-white rounded-lg shadow-lg p-4 mt-2 grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Niveau</label>
+                <select 
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-800"
+                  value={selectedLevel}
+                  onChange={(e) => setSelectedLevel(e.target.value)}
+                >
+                  <option value="all">Tous les niveaux</option>
+                  <option value="Débutant">Débutant</option>
+                  <option value="Intermédiaire">Intermédiaire</option>
+                  <option value="Avancé">Avancé</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Style</label>
+                <select 
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-800"
+                  value={selectedStyle}
+                  onChange={(e) => setSelectedStyle(e.target.value)}
+                >
+                  <option value="all">Tous les styles</option>
+                  <option value="Warhammer">Warhammer</option>
+                  <option value="Fantasy">Fantasy</option>
+                  <option value="Sci-Fi">Sci-Fi</option>
+                  <option value="Historique">Historique</option>
+                  <option value="Anime">Anime</option>
+                </select>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="mb-6">
+          <h3 className="text-2xl font-bold text-gray-800 mb-2">
+            {filteredPainters.length} formateur{filteredPainters.length > 1 ? 's' : ''} disponible{filteredPainters.length > 1 ? 's' : ''}
+          </h3>
+          <p className="text-gray-600">Choisissez votre professeur idéal pour commencer votre apprentissage</p>
+        </div>
+
+        {/* Painters Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredPainters.map(painter => (
+            <div key={painter.id} className="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow overflow-hidden">
+              <div className="p-6">
+                <div className="flex items-start gap-4 mb-4">
+                  <img 
+                    src={painter.profile_image_url} 
+                    alt={painter.name}
+                    className="w-16 h-16 rounded-full bg-purple-100"
+                  />
+                  <div className="flex-1">
+                    <h4 className="font-bold text-lg text-gray-800 mb-1">{painter.name}</h4>
+                    <div className="flex items-center gap-1 text-sm text-gray-600 mb-2">
+                      <MapPin className="w-4 h-4" />
+                      <span>{painter.location}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-gray-600 text-sm mb-4 line-clamp-2">{painter.bio}</p>
+
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {painter.styles.map(style => (
+                    <span key={style} className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                      {style}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
+                  <div className="flex items-center gap-1 text-sm text-gray-600">
+                    <BookOpen className="w-4 h-4" />
+                    <span>{painter.levels.join(', ')}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-sm text-gray-600">
+                    <Clock className="w-4 h-4" />
+                    <span>{painter.availability}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <Euro className="w-5 h-5 text-purple-600" />
+                    <span className="text-2xl font-bold text-gray-800">{painter.hourly_rate}</span>
+                    <span className="text-gray-500 text-sm">/heure</span>
+                  </div>
+                  <button className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition font-medium">
+                    Réserver
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {filteredPainters.length === 0 && (
+          <div className="text-center py-12">
+            <Palette className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">Aucun formateur trouvé</h3>
+            <p className="text-gray-500">Essayez de modifier vos critères de recherche</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
