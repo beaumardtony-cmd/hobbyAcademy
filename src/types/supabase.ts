@@ -39,3 +39,15 @@ export interface MessageType {
   read: boolean;
   created_at: string;
 }
+
+export interface Review {
+  id: string;
+  painter_id: string;
+  student_id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  updated_at: string;
+  student_name?: string;
+  student_image?: string;
+}

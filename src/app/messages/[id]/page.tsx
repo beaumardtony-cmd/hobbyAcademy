@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
 import type { MessageType } from '@/types/supabase';
+import ReviewModal from '@/components/ReviewModal';
 
 export default function ConversationPage() {
   const params = useParams();
@@ -19,6 +20,8 @@ export default function ConversationPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [otherPerson, setOtherPerson] = useState<{ name: string, image?: string } | null>(null);
+  const [painterInfo, setPainterInfo] = useState<{ id: string, name: string } | null>(null);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,7 +33,6 @@ export default function ConversationPage() {
       fetchMessages();
       markMessagesAsRead();
       
-      // Écouter les nouveaux messages en temps réel
       const channel = supabase
         .channel(`conversation:${conversationId}`)
         .on(
@@ -82,9 +84,7 @@ export default function ConversationPage() {
 
       if (!conv) return;
 
-      // Récupérer les infos de l'autre personne
       if (conv.student_id === userId) {
-        // L'utilisateur est l'élève, récupérer les infos du formateur
         const { data: painter } = await supabase
           .from('painters')
           .select('name, profile_image_url')
@@ -93,9 +93,9 @@ export default function ConversationPage() {
 
         if (painter) {
           setOtherPerson({ name: painter.name, image: painter.profile_image_url });
+          setPainterInfo({ id: conv.painter_id, name: painter.name });
         }
       } else {
-        // L'utilisateur est le formateur, récupérer les infos de l'élève
         const { data: { user: studentData } } = await supabase.auth.admin.getUserById(conv.student_id);
         if (studentData) {
           setOtherPerson({ name: studentData.user_metadata?.full_name || studentData.email || 'Utilisateur' });
@@ -190,7 +190,7 @@ export default function ConversationPage() {
               </button>
             </Link>
             {otherPerson && (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-1">
                 {otherPerson.image ? (
                   <Image
                     src={otherPerson.image}
@@ -205,6 +205,16 @@ export default function ConversationPage() {
                   </div>
                 )}
                 <h1 className="text-xl font-bold text-gray-800">{otherPerson.name}</h1>
+                
+                {/* Bouton Laisser un avis (uniquement pour les élèves) */}
+                {painterInfo && user?.id !== painterInfo.id && (
+                  <button
+                    onClick={() => setReviewModalOpen(true)}
+                    className="ml-auto px-3 py-1.5 text-sm bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition font-medium"
+                  >
+                    Laisser un avis
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -271,6 +281,20 @@ export default function ConversationPage() {
           </form>
         </div>
       </div>
+
+      {/* Review Modal */}
+      {painterInfo && (
+        <ReviewModal
+          isOpen={reviewModalOpen}
+          onClose={() => setReviewModalOpen(false)}
+          painterId={painterInfo.id}
+          painterName={painterInfo.name}
+          existingReview={null}
+          onReviewSubmitted={() => {
+            setReviewModalOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

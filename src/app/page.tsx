@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Search, MapPin, Clock, Filter, User as UserIcon, BookOpen, Palette, MessageCircle } from 'lucide-react';
+import { Search, MapPin, Clock, Filter, User as UserIcon, BookOpen, Palette, MessageCircle, Star } from 'lucide-react';
 import Link from 'next/link';
 import AuthModal from '@/components/AuthModal';
 import UserMenu from '@/components/UserMenu';
@@ -21,6 +21,8 @@ interface Painter {
   styles: string[];
   levels: string[];
   user_id?: string;
+  average_rating?: number;
+  review_count?: number;
 }
 
 export default function Home() {
@@ -74,10 +76,19 @@ export default function Home() {
             .select('level')
             .eq('painter_id', painter.id);
 
+          // Récupérer les statistiques d'avis
+          const { data: ratingsData } = await supabase
+            .from('painter_ratings')
+            .select('average_rating, review_count')
+            .eq('painter_id', painter.id)
+            .single();
+
           return {
             ...painter,
             styles: stylesData?.map(s => s.style) || [],
-            levels: levelsData?.map(l => l.level) || []
+            levels: levelsData?.map(l => l.level) || [],
+            average_rating: ratingsData?.average_rating || 0,
+            review_count: ratingsData?.review_count || 0
           };
         })
       );
@@ -300,6 +311,15 @@ export default function Home() {
                       <MapPin className="w-4 h-4" />
                       <span>{painter.location}</span>
                     </div>
+                    {painter.review_count && painter.review_count > 0 ? (
+                      <div className="flex items-center gap-1">
+                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                        <span className="font-semibold text-gray-800">{painter.average_rating}</span>
+                        <span className="text-gray-500 text-sm">({painter.review_count} avis)</span>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-gray-500">Aucun avis</span>
+                    )}
                   </div>
                 </div>
 
@@ -326,7 +346,13 @@ export default function Home() {
 
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-gray-600">
-                    <span className="font-medium text-gray-800">Tarifs à discuter</span>
+                    {painter.review_count && painter.review_count > 0 && (
+                      <Link href={`/painter/${painter.id}/reviews`}>
+                        <button className="text-purple-600 hover:text-purple-700 font-medium transition">
+                          Voir les {painter.review_count} avis
+                        </button>
+                      </Link>
+                    )}
                   </div>
                   <button 
                     onClick={() => handleContactPainter(painter)}
