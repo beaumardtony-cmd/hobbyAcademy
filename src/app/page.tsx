@@ -297,65 +297,70 @@ export default function Home() {
           {filteredPainters.map(painter => (
             <div key={painter.id} className="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow overflow-hidden">
               <div className="p-6">
-                <div className="flex items-start gap-4 mb-4">
-                  <Image 
-                    src={painter.profile_image_url} 
-                    alt={painter.name}
-                    width={64}
-                    height={64}
-                    className="rounded-full bg-purple-100"
-                  />
-                  <div className="flex-1">
-                    <h4 className="font-bold text-lg text-gray-800 mb-1">{painter.name}</h4>
-                    <div className="flex items-center gap-1 text-sm text-gray-600 mb-2">
-                      <MapPin className="w-4 h-4" />
-                      <span>{painter.location}</span>
-                    </div>
-                    {painter.review_count && painter.review_count > 0 ? (
-                      <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                        <span className="font-semibold text-gray-800">{painter.average_rating}</span>
-                        <span className="text-gray-500 text-sm">({painter.review_count} avis)</span>
+                <Link href={`/painter/${painter.id}/profile`}>
+                  <div className="cursor-pointer">
+                    <div className="flex items-start gap-4 mb-4">
+                      <Image 
+                        src={painter.profile_image_url} 
+                        alt={painter.name}
+                        width={64}
+                        height={64}
+                        className="rounded-full bg-purple-100"
+                      />
+                      <div className="flex-1">
+                        <h4 className="font-bold text-lg text-gray-800 mb-1">{painter.name}</h4>
+                        <div className="flex items-center gap-1 text-sm text-gray-600 mb-2">
+                          <MapPin className="w-4 h-4" />
+                          <span>{painter.location}</span>
+                        </div>
+                        {painter.review_count && painter.review_count > 0 ? (
+                          <div className="flex items-center gap-1">
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <span className="font-semibold text-gray-800">{painter.average_rating}</span>
+                            <span className="text-gray-500 text-sm">({painter.review_count} avis)</span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-500">Aucun avis</span>
+                        )}
                       </div>
-                    ) : (
-                      <span className="text-sm text-gray-500">Aucun avis</span>
-                    )}
-                  </div>
-                </div>
+                    </div>
 
-                <p className="text-gray-600 text-sm mb-4 line-clamp-2">{painter.bio}</p>
+                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">{painter.bio}</p>
 
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {painter.styles.map(style => (
-                    <span key={style} className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
-                      {style}
-                    </span>
-                  ))}
-                </div>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {painter.styles.map(style => (
+                        <span key={style} className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                          {style}
+                        </span>
+                      ))}
+                    </div>
 
-                <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
-                  <div className="flex items-center gap-1 text-sm text-gray-600">
-                    <BookOpen className="w-4 h-4" />
-                    <span>{painter.levels.join(', ')}</span>
+                    <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
+                      <div className="flex items-center gap-1 text-sm text-gray-600">
+                        <BookOpen className="w-4 h-4" />
+                        <span>{painter.levels.join(', ')}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-sm text-gray-600">
+                        <Clock className="w-4 h-4" />
+                        <span>{painter.availability}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1 text-sm text-gray-600">
-                    <Clock className="w-4 h-4" />
-                    <span>{painter.availability}</span>
-                  </div>
-                </div>
+                </Link>
 
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-gray-600">
                     {painter.review_count && painter.review_count > 0 && (
-                      <Link href={`/painter/${painter.id}/reviews`}>
-                        <button className="text-purple-600 hover:text-purple-700 font-medium transition">
-                          Voir les {painter.review_count} avis
-                        </button>
-                      </Link>
+                      <span className="text-purple-600 font-medium">
+                        {painter.review_count} avis
+                      </span>
                     )}
                   </div>
                   <button 
-                    onClick={() => handleContactPainter(painter)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleContactPainter(painter);
+                    }}
                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition font-medium"
                   >
                     <MessageCircle className="w-4 h-4" />
