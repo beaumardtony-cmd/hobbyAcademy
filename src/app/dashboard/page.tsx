@@ -197,10 +197,12 @@ export default function DashboardPage() {
           </div>
 
           <div className="mt-6 pt-6 border-t border-gray-200">
-            <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
-              Modifier mon profil
-            </button>
-          </div>
+  <Link href="/settings">
+    <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
+      Modifier mon profil
+    </button>
+  </Link>
+</div>
         </div>
       </div>
     </div>
