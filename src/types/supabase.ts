@@ -7,6 +7,7 @@ export interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultMode?: 'login' | 'signup';
+  onForgotPassword?: () => void;
 }
 
 export interface UserMenuProps {

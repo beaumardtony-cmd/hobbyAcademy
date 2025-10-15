@@ -6,6 +6,7 @@ import { Search, MapPin, Clock, Euro, Filter, User as UserIcon, BookOpen, Palett
 import Link from 'next/link';
 import AuthModal from '@/components/AuthModal';
 import UserMenu from '@/components/UserMenu';
+import ForgotPasswordModal from '@/components/ForgotPasswordModal';
 import type { User } from '@supabase/supabase-js';
 import Image from 'next/image';
 

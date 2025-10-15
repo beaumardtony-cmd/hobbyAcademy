@@ -3,9 +3,16 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { X, Mail, Lock, User as UserIcon } from 'lucide-react';
-import type { AuthModalProps, Message } from '@/types/supabase';
+import type { Message } from '@/types/supabase';
 
-export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: AuthModalProps) {
+interface AuthModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  defaultMode?: 'login' | 'signup';
+  onForgotPassword?: () => void;
+}
+
+export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onForgotPassword }: AuthModalProps) {
   const [mode, setMode] = useState<'login' | 'signup'>(defaultMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -174,6 +181,18 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
               </p>
             )}
           </div>
+
+          {mode === 'login' && (
+            <div className="text-right">
+              <button
+                type="button"
+                onClick={onForgotPassword}
+                className="text-sm text-purple-600 hover:text-purple-700 transition font-medium"
+              >
+                Mot de passe oublié ?
+              </button>
+            </div>
+          )}
 
           <button
             type="submit"
