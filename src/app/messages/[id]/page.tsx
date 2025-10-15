@@ -1,0 +1,276 @@
+'use client';
+
+import { useEffect, useState, useRef } from 'react';
+import { supabase } from '@/lib/supabase';
+import { ArrowLeft, Send, Loader } from 'lucide-react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { useParams } from 'next/navigation';
+import type { User } from '@supabase/supabase-js';
+import type { MessageType } from '@/types/supabase';
+
+export default function ConversationPage() {
+  const params = useParams();
+  const conversationId = params.id as string;
+  
+  const [user, setUser] = useState<User | null>(null);
+  const [messages, setMessages] = useState<MessageType[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [otherPerson, setOtherPerson] = useState<{ name: string, image?: string } | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    checkUser();
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchMessages();
+      markMessagesAsRead();
+      
+      // Écouter les nouveaux messages en temps réel
+      const channel = supabase
+        .channel(`conversation:${conversationId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages',
+            filter: `conversation_id=eq.${conversationId}`
+          },
+          (payload) => {
+            setMessages((prev) => [...prev, payload.new as MessageType]);
+            if (payload.new.sender_id !== user.id) {
+              markMessagesAsRead();
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [user, conversationId]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const checkUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      window.location.href = '/';
+      return;
+    }
+
+    setUser(user);
+    await fetchConversationDetails(user.id);
+  };
+
+  const fetchConversationDetails = async (userId: string) => {
+    try {
+      const { data: conv } = await supabase
+        .from('conversations')
+        .select('painter_id, student_id')
+        .eq('id', conversationId)
+        .single();
+
+      if (!conv) return;
+
+      // Récupérer les infos de l'autre personne
+      if (conv.student_id === userId) {
+        // L'utilisateur est l'élève, récupérer les infos du formateur
+        const { data: painter } = await supabase
+          .from('painters')
+          .select('name, profile_image_url')
+          .eq('id', conv.painter_id)
+          .single();
+
+        if (painter) {
+          setOtherPerson({ name: painter.name, image: painter.profile_image_url });
+        }
+      } else {
+        // L'utilisateur est le formateur, récupérer les infos de l'élève
+        const { data: { user: studentData } } = await supabase.auth.admin.getUserById(conv.student_id);
+        if (studentData) {
+          setOtherPerson({ name: studentData.user_metadata?.full_name || studentData.email || 'Utilisateur' });
+        }
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+    }
+  };
+
+  const fetchMessages = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setMessages(data || []);
+    } catch (error) {
+      console.error('Erreur:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const markMessagesAsRead = async () => {
+    if (!user) return;
+    
+    await supabase
+      .from('messages')
+      .update({ read: true })
+      .eq('conversation_id', conversationId)
+      .eq('read', false)
+      .neq('sender_id', user.id);
+  };
+
+  const sendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.trim() || !user) return;
+
+    setSending(true);
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: conversationId,
+          sender_id: user.id,
+          content: newMessage.trim()
+        });
+
+      if (error) throw error;
+      setNewMessage('');
+    } catch (error) {
+      console.error('Erreur:', error);
+      alert('Erreur lors de l\'envoi du message');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader className="w-16 h-16 text-purple-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Chargement de la conversation...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 flex flex-col">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-purple-100">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="flex items-center gap-4">
+            <Link href="/messages">
+              <button className="p-2 hover:bg-gray-100 rounded-lg transition">
+                <ArrowLeft className="w-5 h-5 text-gray-600" />
+              </button>
+            </Link>
+            {otherPerson && (
+              <div className="flex items-center gap-3">
+                {otherPerson.image ? (
+                  <Image
+                    src={otherPerson.image}
+                    alt={otherPerson.name}
+                    width={40}
+                    height={40}
+                    className="rounded-full"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center text-white font-semibold">
+                    {otherPerson.name[0].toUpperCase()}
+                  </div>
+                )}
+                <h1 className="text-xl font-bold text-gray-800">{otherPerson.name}</h1>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Messages Container */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
+          {messages.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500">Aucun message. Commencez la conversation !</p>
+            </div>
+          ) : (
+            messages.map((message) => {
+              const isOwn = message.sender_id === user?.id;
+              return (
+                <div key={message.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[70%] ${isOwn ? 'order-2' : 'order-1'}`}>
+                    <div className={`rounded-2xl px-4 py-3 ${
+                      isOwn 
+                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' 
+                        : 'bg-white text-gray-800 shadow-md'
+                    }`}>
+                      <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                    </div>
+                    <p className={`text-xs text-gray-500 mt-1 ${isOwn ? 'text-right' : 'text-left'}`}>
+                      {formatTime(message.created_at)}
+                    </p>
+                  </div>
+                </div>
+              );
+            })
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+      </div>
+
+      {/* Message Input */}
+      <div className="bg-white border-t border-purple-100 shadow-lg">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <form onSubmit={sendMessage} className="flex items-end gap-2">
+            <textarea
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  sendMessage(e);
+                }
+              }}
+              placeholder="Écrivez votre message..."
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-none"
+              rows={1}
+              style={{ minHeight: '48px', maxHeight: '120px' }}
+            />
+            <button
+              type="submit"
+              disabled={!newMessage.trim() || sending}
+              className="p-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Send className="w-5 h-5" />
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}

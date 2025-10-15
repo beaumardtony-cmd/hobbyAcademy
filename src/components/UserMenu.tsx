@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { User, LogOut, Settings, Palette, Shield } from 'lucide-react';
+import { User, LogOut, Settings, Palette, Shield, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import type { UserMenuProps } from '@/types/supabase';
 
 export default function UserMenu({ user }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -20,6 +21,70 @@ export default function UserMenu({ user }: UserMenuProps) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    fetchUnreadCount();
+    
+    // Écouter les nouveaux messages en temps réel
+    const channel = supabase
+      .channel('unread-messages')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+        },
+        () => {
+          fetchUnreadCount();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+        },
+        () => {
+          fetchUnreadCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user.id]);
+
+  const fetchUnreadCount = async () => {
+    try {
+      // Récupérer les conversations de l'utilisateur
+      const { data: conversations } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`student_id.eq.${user.id},painter_id.in.(select id from painters where user_id = ${user.id})`);
+
+      if (!conversations || conversations.length === 0) {
+        setUnreadCount(0);
+        return;
+      }
+
+      const conversationIds = conversations.map(c => c.id);
+
+      // Compter les messages non lus dans ces conversations
+      const { count } = await supabase
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .in('conversation_id', conversationIds)
+        .eq('read', false)
+        .neq('sender_id', user.id);
+
+      setUnreadCount(count || 0);
+    } catch (error) {
+      console.error('Erreur lors du comptage des messages non lus:', error);
+    }
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -41,7 +106,7 @@ export default function UserMenu({ user }: UserMenuProps) {
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition"
+        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition relative"
       >
         <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center text-white font-semibold">
           {getInitials(userName)}
@@ -49,6 +114,11 @@ export default function UserMenu({ user }: UserMenuProps) {
         <span className="hidden md:block text-gray-700 font-medium">
           {userName}
         </span>
+        {unreadCount > 0 && (
+          <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </div>
+        )}
       </button>
 
       {isOpen && (
@@ -60,28 +130,57 @@ export default function UserMenu({ user }: UserMenuProps) {
 
           <div className="py-2">
             <Link href="/dashboard">
-              <button className="w-full px-4 py-2 text-left hover:bg-gray-50 transition flex items-center gap-3 text-gray-700">
+              <button 
+                onClick={() => setIsOpen(false)}
+                className="w-full px-4 py-2 text-left hover:bg-gray-50 transition flex items-center gap-3 text-gray-700"
+              >
                 <User className="w-5 h-5" />
                 <span>Mon profil</span>
               </button>
             </Link>
 
+            <Link href="/messages">
+              <button 
+                onClick={() => setIsOpen(false)}
+                className="w-full px-4 py-2 text-left hover:bg-gray-50 transition flex items-center justify-between text-gray-700"
+              >
+                <div className="flex items-center gap-3">
+                  <MessageCircle className="w-5 h-5" />
+                  <span>Messages</span>
+                </div>
+                {unreadCount > 0 && (
+                  <span className="px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+            </Link>
+
             <Link href="/my-courses">
-              <button className="w-full px-4 py-2 text-left hover:bg-gray-50 transition flex items-center gap-3 text-gray-700">
+              <button 
+                onClick={() => setIsOpen(false)}
+                className="w-full px-4 py-2 text-left hover:bg-gray-50 transition flex items-center gap-3 text-gray-700"
+              >
                 <Palette className="w-5 h-5" />
                 <span>Mes cours</span>
               </button>
             </Link>
 
             <Link href="/admin">
-              <button className="w-full px-4 py-2 text-left hover:bg-gray-50 transition flex items-center gap-3 text-gray-700">
+              <button 
+                onClick={() => setIsOpen(false)}
+                className="w-full px-4 py-2 text-left hover:bg-gray-50 transition flex items-center gap-3 text-gray-700"
+              >
                 <Shield className="w-5 h-5" />
                 <span>Administration</span>
               </button>
             </Link>
 
             <Link href="/settings">
-              <button className="w-full px-4 py-2 text-left hover:bg-gray-50 transition flex items-center gap-3 text-gray-700">
+              <button 
+                onClick={() => setIsOpen(false)}
+                className="w-full px-4 py-2 text-left hover:bg-gray-50 transition flex items-center gap-3 text-gray-700"
+              >
                 <Settings className="w-5 h-5" />
                 <span>Paramètres</span>
               </button>

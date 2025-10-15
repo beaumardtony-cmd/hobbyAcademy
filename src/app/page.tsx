@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Search, MapPin, Clock, Euro, Filter, User as UserIcon, BookOpen, Palette } from 'lucide-react';
+import { Search, MapPin, Clock, Filter, User as UserIcon, BookOpen, Palette, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import AuthModal from '@/components/AuthModal';
 import UserMenu from '@/components/UserMenu';
@@ -15,12 +15,12 @@ interface Painter {
   name: string;
   bio: string;
   location: string;
-  hourly_rate: number;
   availability: string;
   profile_image_url: string;
   status: string;
   styles: string[];
   levels: string[];
+  user_id?: string;
 }
 
 export default function Home() {
@@ -33,6 +33,7 @@ export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
 
   useEffect(() => {
     fetchPainters();
@@ -100,9 +101,57 @@ export default function Home() {
     return matchesSearch && matchesLevel && matchesStyle;
   });
 
+  const handleContactPainter = async (painter: Painter) => {
+    if (!user) {
+      openAuthModal('signup');
+      return;
+    }
+
+    // Créer ou récupérer la conversation
+    try {
+      const { data: existingConv } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('painter_id', painter.id)
+        .eq('student_id', user.id)
+        .single();
+
+      if (existingConv) {
+        window.location.href = `/messages/${existingConv.id}`;
+      } else {
+        const { data: newConv, error } = await supabase
+          .from('conversations')
+          .insert({
+            painter_id: painter.id,
+            student_id: user.id
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        window.location.href = `/messages/${newConv.id}`;
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+      alert('Erreur lors de l\'ouverture de la conversation');
+    }
+  };
+
   const openAuthModal = (mode: 'login' | 'signup') => {
     setAuthMode(mode);
     setAuthModalOpen(true);
+    setForgotPasswordOpen(false);
+  };
+
+  const openForgotPassword = () => {
+    setAuthModalOpen(false);
+    setForgotPasswordOpen(true);
+  };
+
+  const backToLogin = () => {
+    setForgotPasswordOpen(false);
+    setAuthModalOpen(true);
+    setAuthMode('login');
   };
 
   if (loading) {
@@ -130,7 +179,14 @@ export default function Home() {
             </Link>
             <div className="flex items-center gap-3">
               {user ? (
-                <UserMenu user={user} />
+                <>
+                  <Link href="/messages">
+                    <button className="relative p-2 hover:bg-gray-100 rounded-lg transition">
+                      <MessageCircle className="w-6 h-6 text-gray-700" />
+                    </button>
+                  </Link>
+                  <UserMenu user={user} />
+                </>
               ) : (
                 <>
                   <button 
@@ -269,16 +325,15 @@ export default function Home() {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1">
-                    <Euro className="w-5 h-5 text-purple-600" />
-                    <span className="text-2xl font-bold text-gray-800">{painter.hourly_rate}</span>
-                    <span className="text-gray-500 text-sm">/heure</span>
+                  <div className="text-sm text-gray-600">
+                    <span className="font-medium text-gray-800">Tarifs à discuter</span>
                   </div>
                   <button 
-                    onClick={() => user ? alert('Réservation à venir') : openAuthModal('signup')}
-                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition font-medium"
+                    onClick={() => handleContactPainter(painter)}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition font-medium"
                   >
-                    Réserver
+                    <MessageCircle className="w-4 h-4" />
+                    Contacter
                   </button>
                 </div>
               </div>
@@ -300,6 +355,14 @@ export default function Home() {
         isOpen={authModalOpen} 
         onClose={() => setAuthModalOpen(false)}
         defaultMode={authMode}
+        onForgotPassword={openForgotPassword}
+      />
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={forgotPasswordOpen}
+        onClose={() => setForgotPasswordOpen(false)}
+        onBackToLogin={backToLogin}
       />
     </div>
   );

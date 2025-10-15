@@ -18,3 +18,24 @@ export interface Message {
   type: 'error' | 'success';
   text: string;
 }
+
+export interface Conversation {
+  id: string;
+  painter_id: string;
+  student_id: string;
+  last_message_at: string;
+  created_at: string;
+  painter_name?: string;
+  student_name?: string;
+  painter_image?: string;
+  unread_count?: number;
+}
+
+export interface MessageType {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  content: string;
+  read: boolean;
+  created_at: string;
+}
