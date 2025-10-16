@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Search, MapPin, Filter, User as UserIcon, BookOpen, Palette, MessageCircle, Star } from 'lucide-react';
+import { Search, MapPin, Filter, User as UserIcon, BookOpen, Palette, MessageCircle, Star, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import AuthModal from '@/components/AuthModal';
 import UserMenu from '@/components/UserMenu';
@@ -192,17 +192,28 @@ export default function Home() {
             </Link>
             <div className="flex items-center gap-3">
               {user ? (
-  <>
-    <NotificationBadge user={user} />
-    <Link href="/messages">
-      <button className="relative p-2 hover:bg-gray-100 rounded-lg transition">
-        <MessageCircle className="w-6 h-6 text-gray-700" />
-      </button>
-    </Link>
-    <UserMenu user={user} />
-  </>
+                <>
+                  <NotificationBadge user={user} />
+                  <Link href="/gallery">
+                    <button className="relative p-2 hover:bg-gray-100 rounded-lg transition" title="Galerie">
+                      <ImageIcon className="w-6 h-6 text-gray-700" />
+                    </button>
+                  </Link>
+                  <Link href="/messages">
+                    <button className="relative p-2 hover:bg-gray-100 rounded-lg transition" title="Messages">
+                      <MessageCircle className="w-6 h-6 text-gray-700" />
+                    </button>
+                  </Link>
+                  <UserMenu user={user} />
+                </>
               ) : (
                 <>
+                  <Link href="/gallery">
+                    <button className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-purple-600 transition font-medium">
+                      <ImageIcon className="w-4 h-4" />
+                      Galerie
+                    </button>
+                  </Link>
                   <button 
                     onClick={() => openAuthModal('login')}
                     className="px-4 py-2 text-gray-700 hover:text-purple-600 transition font-medium"
@@ -344,7 +355,6 @@ export default function Home() {
                         <span>{painter.levels.join(', ')}</span>
                       </div>
                       
-                      {/* CHANGEMENT ICI : Utilisation du composant AvailabilityDisplay */}
                       <AvailabilityDisplay 
                         availability={painter.availability} 
                         compact={true}
