@@ -5,9 +5,15 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'api.dicebear.com',
-        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.supabase.co',
       },
     ],
+    dangerouslyAllowSVG: true,
+    contentDispositionType: 'attachment',
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 };
 
