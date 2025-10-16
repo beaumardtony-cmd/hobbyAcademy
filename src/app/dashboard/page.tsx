@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { User as UserIcon, Mail, Calendar, Palette, ArrowLeft } from 'lucide-react';
+import { User as UserIcon, Mail, Calendar, Palette, ArrowLeft, Heart } from 'lucide-react';
 import Link from 'next/link';
 import type { User } from '@supabase/supabase-js';
 
@@ -68,7 +68,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
       <header className="bg-white shadow-sm border-b border-purple-100">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
             <Link href="/">
               <button className="p-2 hover:bg-gray-100 rounded-lg transition">
@@ -162,6 +162,20 @@ export default function DashboardPage() {
               </div>
             </div>
           </Link>
+
+          <Link href="/favorites">
+            <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition cursor-pointer">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                  <Heart className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-800 mb-1">Mes favoris</h3>
+                  <p className="text-sm text-gray-600">Voir mes formateurs favoris</p>
+                </div>
+              </div>
+            </div>
+          </Link>
         </div>
 
         <div className="bg-white rounded-xl shadow-md p-6">
@@ -197,12 +211,12 @@ export default function DashboardPage() {
           </div>
 
           <div className="mt-6 pt-6 border-t border-gray-200">
-  <Link href="/settings">
-    <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
-      Modifier mon profil
-    </button>
-  </Link>
-</div>
+            <Link href="/settings">
+              <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
+                Modifier mon profil
+              </button>
+            </Link>
+          </div>
         </div>
       </div>
     </div>

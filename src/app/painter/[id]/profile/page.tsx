@@ -41,6 +41,7 @@ export default function PainterProfilePage() {
   const [painter, setPainter] = useState<PainterProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [favoritesCount, setFavoritesCount] = useState(0);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
@@ -48,6 +49,12 @@ export default function PainterProfilePage() {
     checkUser();
     fetchPainterProfile();
   }, [painterId]);
+
+  useEffect(() => {
+    if (user) {
+      checkIfFavorite();
+    }
+  }, [user, painterId]);
 
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();

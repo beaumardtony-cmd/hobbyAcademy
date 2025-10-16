@@ -51,3 +51,9 @@ export interface Review {
   student_name?: string;
   student_image?: string;
 }
+export interface Favorite {
+  id: string;
+  user_id: string;
+  painter_id: string;
+  created_at: string;
+}

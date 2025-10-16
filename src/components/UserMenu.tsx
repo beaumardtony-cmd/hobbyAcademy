@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { User, LogOut, Settings, Palette, Shield, MessageCircle } from 'lucide-react';
+import { User, LogOut, Settings, Palette, Shield, MessageCircle, Heart } from 'lucide-react';
 import Link from 'next/link';
 import type { UserMenuProps } from '@/types/supabase';
 
@@ -10,6 +10,33 @@ export default function UserMenu({ user }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const { data: conversations } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`student_id.eq.${user.id},painter_id.in.(select id from painters where user_id = ${user.id})`);
+
+      if (!conversations || conversations.length === 0) {
+        setUnreadCount(0);
+        return;
+      }
+
+      const conversationIds = conversations.map(c => c.id);
+
+      const { count } = await supabase
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .in('conversation_id', conversationIds)
+        .eq('read', false)
+        .neq('sender_id', user.id);
+
+      setUnreadCount(count || 0);
+    } catch (error) {
+      console.error('Erreur lors du comptage des messages non lus:', error);
+    }
+  }, [user.id]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -25,7 +52,6 @@ export default function UserMenu({ user }: UserMenuProps) {
   useEffect(() => {
     fetchUnreadCount();
     
-    // Écouter les nouveaux messages en temps réel
     const channel = supabase
       .channel('unread-messages')
       .on(
@@ -55,36 +81,7 @@ export default function UserMenu({ user }: UserMenuProps) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user.id]);
-
-  const fetchUnreadCount = async () => {
-    try {
-      // Récupérer les conversations de l'utilisateur
-      const { data: conversations } = await supabase
-        .from('conversations')
-        .select('id')
-        .or(`student_id.eq.${user.id},painter_id.in.(select id from painters where user_id = ${user.id})`);
-
-      if (!conversations || conversations.length === 0) {
-        setUnreadCount(0);
-        return;
-      }
-
-      const conversationIds = conversations.map(c => c.id);
-
-      // Compter les messages non lus dans ces conversations
-      const { count } = await supabase
-        .from('messages')
-        .select('*', { count: 'exact', head: true })
-        .in('conversation_id', conversationIds)
-        .eq('read', false)
-        .neq('sender_id', user.id);
-
-      setUnreadCount(count || 0);
-    } catch (error) {
-      console.error('Erreur lors du comptage des messages non lus:', error);
-    }
-  };
+  }, [fetchUnreadCount]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -136,6 +133,16 @@ export default function UserMenu({ user }: UserMenuProps) {
               >
                 <User className="w-5 h-5" />
                 <span>Mon profil</span>
+              </button>
+            </Link>
+
+            <Link href="/favorites">
+              <button 
+                onClick={() => setIsOpen(false)}
+                className="w-full px-4 py-2 text-left hover:bg-gray-50 transition flex items-center gap-3 text-gray-700"
+              >
+                <Heart className="w-5 h-5" />
+                <span>Mes favoris</span>
               </button>
             </Link>
 
