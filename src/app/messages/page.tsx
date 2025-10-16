@@ -1,191 +1,518 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
-import { MessageCircle, ArrowLeft, Loader } from 'lucide-react';
+import { ArrowLeft, Send, Paperclip, FileIcon, Download, Loader } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
-import type { Conversation } from '@/types/supabase';
+import FileUpload from '@/components/FileUpload';
 
-export default function MessagesPage() {
+interface Message {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  content: string | null;
+  attachment_url: string | null;
+  attachment_type: string | null;
+  attachment_name: string | null;
+  created_at: string;
+  is_mine: boolean;
+}
+
+interface Conversation {
+  id: string;
+  painter_id: string;
+  student_id: string;
+  other_user_name: string;
+  other_user_role: string;
+}
+
+function MessagesContent() {
+  const searchParams = useSearchParams();
+  const conversationId = searchParams.get('conversation');
+
   const [user, setUser] = useState<User | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<string | null>(conversationId);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [showFileUpload, setShowFileUpload] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [otherUserTyping, setOtherUserTyping] = useState(false);
 
-  const fetchConversations = async (userId: string) => {
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const checkUser = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setUser(user);
+    return user;
+  }, []);
+
+  const fetchConversations = useCallback(async (currentUser: User) => {
     try {
-      // Récupérer les conversations
-      const { data: convData, error: convError } = await supabase
+      const { data, error } = await supabase
         .from('conversations')
         .select('*')
-        .or(`student_id.eq.${userId},painter_id.in.(select id from painters where user_id = ${userId})`)
-        .order('last_message_at', { ascending: false });
+        .or(`painter_id.eq.${currentUser.id},student_id.eq.${currentUser.id}`)
+        .order('updated_at', { ascending: false });
 
-      if (convError) throw convError;
+      if (error) throw error;
 
-      // Pour chaque conversation, récupérer les infos du formateur/élève
-      const conversationsWithDetails = await Promise.all(
-        (convData || []).map(async (conv) => {
-          // Récupérer les infos du formateur
-          const { data: painterData } = await supabase
-            .from('painters')
-            .select('name, profile_image_url, user_id')
-            .eq('id', conv.painter_id)
-            .single();
+      const conversationsWithUsers = await Promise.all(
+        (data || []).map(async (conv) => {
+          const otherUserId = conv.painter_id === currentUser.id ? conv.student_id : conv.painter_id;
+          const otherUserRole = conv.painter_id === currentUser.id ? 'Élève' : 'Formateur';
 
-          // Récupérer les infos de l'élève
-          const { data: { user: studentData } } = await supabase.auth.admin.getUserById(conv.student_id);
-
-          // Compter les messages non lus
-          const { count } = await supabase
-            .from('messages')
-            .select('*', { count: 'exact', head: true })
-            .eq('conversation_id', conv.id)
-            .eq('read', false)
-            .neq('sender_id', userId);
+          const { data: { user: otherUser } } = await supabase.auth.admin.getUserById(otherUserId);
 
           return {
             ...conv,
-            painter_name: painterData?.name,
-            painter_image: painterData?.profile_image_url,
-            student_name: studentData?.user_metadata?.full_name || studentData?.email,
-            unread_count: count || 0
+            other_user_name: otherUser?.user_metadata?.full_name || otherUser?.email?.split('@')[0] || 'Utilisateur',
+            other_user_role: otherUserRole,
           };
         })
       );
 
-      setConversations(conversationsWithDetails);
+      setConversations(conversationsWithUsers);
     } catch (error) {
       console.error('Erreur:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const checkUser = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      window.location.href = '/';
-      return;
+  const fetchMessages = useCallback(async (convId: string, currentUser: User) => {
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', convId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      const messagesWithOwnership = (data || []).map(msg => ({
+        ...msg,
+        is_mine: msg.sender_id === currentUser.id,
+      }));
+
+      setMessages(messagesWithOwnership);
+    } catch (error) {
+      console.error('Erreur:', error);
     }
+  }, []);
 
-    setUser(user);
-    await fetchConversations(user.id);
+  const updateTypingStatus = useCallback(async (convId: string, userId: string, isTyping: boolean) => {
+    try {
+      if (isTyping) {
+        await supabase
+          .from('typing_indicators')
+          .upsert({
+            conversation_id: convId,
+            user_id: userId,
+            updated_at: new Date().toISOString(),
+          });
+      } else {
+        await supabase
+          .from('typing_indicators')
+          .delete()
+          .eq('conversation_id', convId)
+          .eq('user_id', userId);
+      }
+    } catch (error) {
+      console.error('Erreur typing:', error);
+    }
   }, []);
 
   useEffect(() => {
-    checkUser();
-  }, [checkUser]);
+    const init = async () => {
+      const currentUser = await checkUser();
+      if (currentUser) {
+        await fetchConversations(currentUser);
+        if (conversationId) {
+          setSelectedConversation(conversationId);
+          await fetchMessages(conversationId, currentUser);
+        }
+      }
+    };
+    init();
+  }, [checkUser, fetchConversations, fetchMessages, conversationId]);
+
+  // Subscription aux nouveaux messages
+  useEffect(() => {
+    if (!selectedConversation || !user) return;
+
+    const channel = supabase
+      .channel(`messages:${selectedConversation}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${selectedConversation}`,
+        },
+        (payload) => {
+          const newMsg = {
+            ...payload.new,
+            is_mine: payload.new.sender_id === user.id,
+          } as Message;
+          setMessages((prev) => [...prev, newMsg]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedConversation, user]);
+
+  // Subscription au typing indicator
+  useEffect(() => {
+    if (!selectedConversation || !user) return;
+
+    const channel = supabase
+      .channel(`typing:${selectedConversation}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'typing_indicators',
+          filter: `conversation_id=eq.${selectedConversation}`,
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            if (payload.new.user_id !== user.id) {
+              setOtherUserTyping(true);
+              setTimeout(() => setOtherUserTyping(false), 3000);
+            }
+          } else if (payload.eventType === 'DELETE') {
+            if (payload.old.user_id !== user.id) {
+              setOtherUserTyping(false);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedConversation, user]);
+
+  const handleTyping = useCallback(() => {
+    if (!selectedConversation || !user) return;
+
+    if (!isTyping) {
+      setIsTyping(true);
+      updateTypingStatus(selectedConversation, user.id, true);
+    }
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+      updateTypingStatus(selectedConversation, user.id, false);
+    }, 2000);
+  }, [selectedConversation, user, isTyping, updateTypingStatus]);
+
+  const sendMessage = async (content?: string, fileData?: { url: string; type: string; name: string }) => {
+    if (!selectedConversation || !user) return;
+    if (!content?.trim() && !fileData) return;
+
+    setSending(true);
+
+    try {
+      const { error } = await supabase.from('messages').insert({
+        conversation_id: selectedConversation,
+        sender_id: user.id,
+        content: content || null,
+        attachment_url: fileData?.url || null,
+        attachment_type: fileData?.type || null,
+        attachment_name: fileData?.name || null,
+      });
+
+      if (error) throw error;
+
+      setNewMessage('');
+      if (isTyping) {
+        setIsTyping(false);
+        updateTypingStatus(selectedConversation, user.id, false);
+      }
+
+      // Mettre à jour la conversation
+      await supabase
+        .from('conversations')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', selectedConversation);
+    } catch (error) {
+      console.error('Erreur:', error);
+      alert('Erreur lors de l\'envoi du message');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleFileUpload = async (file: File) => {
+    if (!user) return;
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const bucket = file.type.startsWith('image/') ? 'images' : 'files';
+      const filePath = `messages/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(filePath);
+
+      await sendMessage(undefined, {
+        url: publicUrl,
+        type: file.type,
+        name: file.name,
+      });
+
+      setShowFileUpload(false);
+    } catch (error) {
+      console.error('Erreur upload:', error);
+      alert('Erreur lors de l\'upload du fichier');
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    sendMessage(newMessage);
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
 
-    if (days === 0) {
-      return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-    } else if (days === 1) {
+    if (date.toDateString() === today.toDateString()) {
+      return 'Aujourd\'hui';
+    } else if (date.toDateString() === yesterday.toDateString()) {
       return 'Hier';
-    } else if (days < 7) {
-      return `Il y a ${days} jours`;
-    } else {
-      return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
     }
+    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+  };
+
+  const groupMessagesByDate = (msgs: Message[]) => {
+    const groups: { [key: string]: Message[] } = {};
+    msgs.forEach(msg => {
+      const date = new Date(msg.created_at).toDateString();
+      if (!groups[date]) groups[date] = [];
+      groups[date].push(msg);
+    });
+    return groups;
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader className="w-16 h-16 text-purple-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Chargement des conversations...</p>
-        </div>
+        <Loader className="w-16 h-16 text-purple-600 animate-spin" />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b border-purple-100">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Link href="/">
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition">
-                <ArrowLeft className="w-5 h-5 text-gray-600" />
-              </button>
-            </Link>
-            <div className="flex items-center gap-2">
-              <MessageCircle className="w-6 h-6 text-purple-600" />
-              <h1 className="text-2xl font-bold text-gray-800">Messages</h1>
-            </div>
-          </div>
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <Link href="/">
+            <button className="flex items-center gap-2 text-gray-600 hover:text-purple-600 transition">
+              <ArrowLeft className="w-5 h-5" />
+              <span className="font-medium">Retour</span>
+            </button>
+          </Link>
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {conversations.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-md p-12 text-center">
-            <MessageCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">Aucune conversation</h3>
-            <p className="text-gray-500 mb-6">Contactez un formateur pour commencer une conversation</p>
-            <Link href="/">
-              <button className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition">
-                Trouver un formateur
-              </button>
-            </Link>
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="grid md:grid-cols-3 gap-6 h-[calc(100vh-12rem)]">
+          {/* Liste des conversations */}
+          <div className="bg-white rounded-xl shadow-lg p-4 overflow-y-auto">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Conversations</h2>
+            {conversations.length === 0 ? (
+              <p className="text-gray-500 text-center py-8">Aucune conversation</p>
+            ) : (
+              <div className="space-y-2">
+                {conversations.map((conv) => (
+                  <button
+                    key={conv.id}
+                    onClick={() => {
+                      setSelectedConversation(conv.id);
+                      if (user) fetchMessages(conv.id, user);
+                    }}
+                    className={`w-full text-left p-3 rounded-lg transition ${
+                      selectedConversation === conv.id
+                        ? 'bg-purple-100 border-2 border-purple-600'
+                        : 'hover:bg-gray-50 border-2 border-transparent'
+                    }`}
+                  >
+                    <p className="font-semibold text-gray-800">{conv.other_user_name}</p>
+                    <p className="text-sm text-gray-500">{conv.other_user_role}</p>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="bg-white rounded-xl shadow-md overflow-hidden">
-            {conversations.map((conv) => {
-              const isPainter = user?.id && conv.painter_id;
-              const otherPersonName = isPainter ? conv.student_name : conv.painter_name;
-              const otherPersonImage = conv.painter_image;
 
-              return (
-                <Link key={conv.id} href={`/messages/${conv.id}`}>
-                  <div className="flex items-center gap-4 p-4 hover:bg-gray-50 transition border-b border-gray-100 cursor-pointer">
-                    <div className="relative">
-                      {otherPersonImage ? (
-                        <Image
-                          src={otherPersonImage}
-                          alt={otherPersonName || 'User'}
-                          width={56}
-                          height={56}
-                          className="rounded-full"
-                        />
-                      ) : (
-                        <div className="w-14 h-14 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center text-white font-semibold">
-                          {(otherPersonName || 'U')[0].toUpperCase()}
+          {/* Zone de messages */}
+          <div className="md:col-span-2 bg-white rounded-xl shadow-lg flex flex-col">
+            {selectedConversation ? (
+              <>
+                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                  {Object.entries(groupMessagesByDate(messages)).map(([date, msgs]) => (
+                    <div key={date}>
+                      <div className="flex items-center justify-center my-4">
+                        <span className="px-3 py-1 bg-gray-200 text-gray-600 text-xs rounded-full">
+                          {formatDate(msgs[0].created_at)}
+                        </span>
+                      </div>
+                      {msgs.map((msg) => (
+                        <div
+                          key={msg.id}
+                          className={`flex ${msg.is_mine ? 'justify-end' : 'justify-start'} mb-3`}
+                        >
+                          <div
+                            className={`max-w-[70%] rounded-lg p-3 ${
+                              msg.is_mine
+                                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}
+                          >
+                            {msg.attachment_url && (
+                              <div className="mb-2">
+                                {msg.attachment_type?.startsWith('image/') ? (
+                                  <div className="relative w-full h-48 rounded-lg overflow-hidden">
+                                    <Image
+                                      src={msg.attachment_url}
+                                      alt={msg.attachment_name || 'Image'}
+                                      fill
+                                      className="object-cover"
+                                    />
+                                  </div>
+                                ) : (
+                                  <a
+                                    href={msg.attachment_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 p-2 bg-white/20 rounded-lg hover:bg-white/30 transition"
+                                  >
+                                    <FileIcon className="w-5 h-5" />
+                                    <span className="text-sm truncate flex-1">{msg.attachment_name}</span>
+                                    <Download className="w-4 h-4" />
+                                  </a>
+                                )}
+                              </div>
+                            )}
+                            {msg.content && <p className="whitespace-pre-wrap">{msg.content}</p>}
+                            <p className={`text-xs mt-1 ${msg.is_mine ? 'text-white/70' : 'text-gray-500'}`}>
+                              {formatTime(msg.created_at)}
+                            </p>
+                          </div>
                         </div>
-                      )}
-                      {conv.unread_count && conv.unread_count > 0 && (
-                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                          {conv.unread_count}
+                      ))}
+                    </div>
+                  ))}
+                  {otherUserTyping && (
+                    <div className="flex justify-start">
+                      <div className="bg-gray-100 rounded-lg px-4 py-2">
+                        <div className="flex gap-1">
+                          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                         </div>
-                      )}
+                      </div>
                     </div>
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
 
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-800">{otherPersonName}</h3>
-                      <p className="text-sm text-gray-500">
-                        Cliquez pour ouvrir la conversation
-                      </p>
-                    </div>
-
-                    <div className="text-right">
-                      <p className="text-xs text-gray-500">{formatDate(conv.last_message_at)}</p>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
+                <form onSubmit={handleSubmit} className="border-t border-gray-100 p-4 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowFileUpload(true)}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition"
+                  >
+                    <Paperclip className="w-5 h-5 text-gray-600" />
+                  </button>
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => {
+                      setNewMessage(e.target.value);
+                      handleTyping();
+                    }}
+                    placeholder="Écrivez votre message..."
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    disabled={sending}
+                  />
+                  <button
+                    type="submit"
+                    disabled={sending || (!newMessage.trim())}
+                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition disabled:opacity-50"
+                  >
+                    {sending ? <Loader className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                  </button>
+                </form>
+              </>
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-gray-500">
+                <p>Sélectionnez une conversation pour commencer</p>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
+
+      {showFileUpload && (
+        <FileUpload
+          onFileSelect={handleFileUpload}
+          onCancel={() => setShowFileUpload(false)}
+        />
+      )}
     </div>
+  );
+}
+
+export default function MessagesPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader className="w-16 h-16 text-purple-600 animate-spin" />
+      </div>
+    }>
+      <MessagesContent />
+    </Suspense>
   );
 }
