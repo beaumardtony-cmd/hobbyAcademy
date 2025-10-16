@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Search, MapPin, Clock, Filter, User as UserIcon, BookOpen, Palette, MessageCircle, Star } from 'lucide-react';
+import { Search, MapPin, Filter, User as UserIcon, BookOpen, Palette, MessageCircle, Star } from 'lucide-react';
 import Link from 'next/link';
 import AuthModal from '@/components/AuthModal';
 import UserMenu from '@/components/UserMenu';
@@ -10,6 +10,7 @@ import ForgotPasswordModal from '@/components/ForgotPasswordModal';
 import type { User } from '@supabase/supabase-js';
 import Image from 'next/image';
 import NotificationBadge from '@/components/NotificationBadge';
+import AvailabilityDisplay from '@/components/AvailabilityDisplay';
 
 interface Painter {
   id: string;
@@ -337,15 +338,17 @@ export default function Home() {
                       ))}
                     </div>
 
-                    <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
-                      <div className="flex items-center gap-1 text-sm text-gray-600">
+                    <div className="mb-4 pb-4 border-b border-gray-200">
+                      <div className="flex items-center gap-1 text-sm text-gray-600 mb-3">
                         <BookOpen className="w-4 h-4" />
                         <span>{painter.levels.join(', ')}</span>
                       </div>
-                      <div className="flex items-center gap-1 text-sm text-gray-600">
-                        <Clock className="w-4 h-4" />
-                        <span>{painter.availability}</span>
-                      </div>
+                      
+                      {/* CHANGEMENT ICI : Utilisation du composant AvailabilityDisplay */}
+                      <AvailabilityDisplay 
+                        availability={painter.availability} 
+                        compact={true}
+                      />
                     </div>
                   </div>
                 </Link>

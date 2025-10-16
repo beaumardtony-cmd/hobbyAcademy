@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, MapPin, Clock, MessageCircle, Star, Heart, Loader, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, MapPin, MessageCircle, Star, Heart, Loader, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
@@ -10,6 +10,7 @@ import type { User } from '@supabase/supabase-js';
 import StarRating from '@/components/StarRating';
 import ReviewModal from '@/components/ReviewModal';
 import { notifyNewFavorite } from '@/lib/notifications';
+import AvailabilityDisplay from '@/components/AvailabilityDisplay';
 
 interface PainterProfile {
   id: string;
@@ -474,13 +475,8 @@ await notifyNewFavorite({
             <div className="bg-white rounded-xl shadow-md p-6">
               <h3 className="text-lg font-bold text-gray-800 mb-4">Informations</h3>
               <div className="space-y-4">
-                <div>
-                  <div className="flex items-center gap-2 text-gray-600 mb-1">
-                    <Clock className="w-4 h-4" />
-                    <span className="text-sm font-medium">Disponibilités</span>
-                  </div>
-                  <p className="text-gray-800 ml-6">{painter.availability}</p>
-                </div>
+                {/* CHANGEMENT ICI : Utilisation du composant AvailabilityDisplay */}
+                <AvailabilityDisplay availability={painter.availability} />
                 
                 <div>
                   <p className="text-sm font-medium text-gray-600 mb-2">Niveaux enseignés</p>
