@@ -172,6 +172,28 @@ export default function PainterProfilePage() {
     }
   }, [user, checkIfFavorite]);
 
+  // Tracker la vue du profil
+  const trackProfileView = useCallback(async () => {
+    if (!painterId) return;
+    
+    try {
+      await supabase
+        .from('profile_views')
+        .insert({
+          painter_id: painterId,
+          viewer_id: user?.id || null
+        });
+    } catch {
+      // Ignorer silencieusement les erreurs de tracking
+    }
+  }, [painterId, user]);
+
+  useEffect(() => {
+    if (painter) {
+      trackProfileView();
+    }
+  }, [painter, trackProfileView]);
+
   const handleContactPainter = async () => {
     if (!user) {
       alert('Veuillez vous connecter pour contacter ce formateur');
