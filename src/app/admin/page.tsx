@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Shield, CheckCircle, XCircle, AlertCircle, MapPin } from 'lucide-react';
 import Link from 'next/link';
-import type { User } from '@supabase/supabase-js';
+import Image from 'next/image';
 
 interface Painter {
   id: string;
@@ -26,43 +26,6 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [rejectionReason, setRejectionReason] = useState('');
   const [selectedPainter, setSelectedPainter] = useState<Painter | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  // ... reste du code identique
-
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      window.location.href = '/';
-      return;
-    }
-
-    setUser(user);
-
-    // Vérifier si l'utilisateur est admin (optionnel)
-    const { data: roles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('role', 'admin')
-      .single();
-
-    if (roles) {
-      setIsAdmin(true);
-      fetchAllPainters();
-    } else {
-      // Pour le moment, on permet l'accès à tous les utilisateurs connectés
-      // Vous pouvez changer cela plus tard
-      setIsAdmin(true);
-      fetchAllPainters();
-    }
-  };
 
   const fetchAllPainters = async () => {
     try {
@@ -100,6 +63,35 @@ export default function AdminPage() {
       setLoading(false);
     }
   };
+
+  const checkAuth = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      window.location.href = '/';
+      return;
+    }
+
+    // Vérifier si l'utilisateur est admin (optionnel)
+    const { data: roles } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .single();
+
+    if (roles) {
+      fetchAllPainters();
+    } else {
+      // Pour le moment, on permet l'accès à tous les utilisateurs connectés
+      // Vous pouvez changer cela plus tard
+      fetchAllPainters();
+    }
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   const approvePainter = async (id: string) => {
     try {
@@ -230,10 +222,12 @@ export default function AdminPage() {
                 <div key={painter.id} className="bg-white rounded-xl shadow-md overflow-hidden">
                   <div className="p-6">
                     <div className="flex items-start gap-4 mb-4">
-                      <img 
+                      <Image 
                         src={painter.profile_image_url} 
                         alt={painter.name}
-                        className="w-20 h-20 rounded-full bg-purple-100"
+                        width={80}
+                        height={80}
+                        className="w-20 h-20 rounded-full object-cover bg-purple-100"
                       />
                       <div className="flex-1">
                         <div className="flex items-start justify-between mb-2">
@@ -317,7 +311,13 @@ export default function AdminPage() {
                     <tr key={painter.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <img src={painter.profile_image_url} alt={painter.name} className="w-10 h-10 rounded-full" />
+                          <Image 
+                            src={painter.profile_image_url} 
+                            alt={painter.name} 
+                            width={40}
+                            height={40}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
                           <span className="font-medium text-gray-800">{painter.name}</span>
                         </div>
                       </td>
@@ -354,7 +354,13 @@ export default function AdminPage() {
                       <tr key={painter.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <img src={painter.profile_image_url} alt={painter.name} className="w-10 h-10 rounded-full" />
+                            <Image 
+                              src={painter.profile_image_url} 
+                              alt={painter.name} 
+                              width={40}
+                              height={40}
+                              className="w-10 h-10 rounded-full object-cover"
+                            />
                             <span className="font-medium text-gray-800">{painter.name}</span>
                           </div>
                         </td>

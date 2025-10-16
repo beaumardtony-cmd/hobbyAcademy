@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Loader, Star, Plus, Edit2, Trash2 } from 'lucide-react';
 import Link from 'next/link';
@@ -23,18 +23,12 @@ export default function PainterReviewsPage() {
   const [averageRating, setAverageRating] = useState(0);
   const [reviewCount, setReviewCount] = useState(0);
 
-  useEffect(() => {
-    checkUser();
-    fetchPainterInfo();
-    fetchReviews();
-  }, [painterId]);
-
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     setUser(user);
   };
 
-  const fetchPainterInfo = async () => {
+  const fetchPainterInfo = useCallback(async () => {
     const { data } = await supabase
       .from('painters')
       .select('name')
@@ -42,9 +36,9 @@ export default function PainterReviewsPage() {
       .single();
 
     if (data) setPainterName(data.name);
-  };
+  }, [painterId]);
 
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('reviews')
@@ -85,7 +79,13 @@ export default function PainterReviewsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [painterId, user]);
+
+  useEffect(() => {
+    checkUser();
+    fetchPainterInfo();
+    fetchReviews();
+  }, [painterId, fetchPainterInfo, fetchReviews]);
 
   const handleDeleteReview = async (reviewId: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer votre avis ?')) return;

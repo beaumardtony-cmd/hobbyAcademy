@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, MapPin, Clock, MessageCircle, Star, Heart, Loader, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
@@ -50,7 +50,7 @@ export default function PainterProfilePage() {
     setUser(user);
   };
 
-  const checkIfFavorite = async () => {
+  const checkIfFavorite = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -62,12 +62,12 @@ export default function PainterProfilePage() {
         .single();
 
       setIsFavorite(!!data);
-    } catch (error) {
+    } catch {
       setIsFavorite(false);
     }
-  };
+  }, [user, painterId]);
 
-  const fetchFavoritesCount = async () => {
+  const fetchFavoritesCount = useCallback(async () => {
     try {
       const { count } = await supabase
         .from('favorites')
@@ -78,20 +78,9 @@ export default function PainterProfilePage() {
     } catch (error) {
       console.error('Erreur:', error);
     }
-  };
-
-  useEffect(() => {
-    checkUser();
-    fetchPainterProfile();
   }, [painterId]);
 
-  useEffect(() => {
-    if (user) {
-      checkIfFavorite();
-    }
-  }, [user, painterId]);
-
-  const fetchPainterProfile = async () => {
+  const fetchPainterProfile = useCallback(async () => {
     try {
       // Récupérer les infos du formateur
       const { data: painterData, error: painterError } = await supabase
@@ -170,7 +159,18 @@ export default function PainterProfilePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [painterId, router, fetchFavoritesCount]);
+
+  useEffect(() => {
+    checkUser();
+    fetchPainterProfile();
+  }, [fetchPainterProfile]);
+
+  useEffect(() => {
+    if (user) {
+      checkIfFavorite();
+    }
+  }, [user, checkIfFavorite]);
 
   const handleContactPainter = async () => {
     if (!user) {

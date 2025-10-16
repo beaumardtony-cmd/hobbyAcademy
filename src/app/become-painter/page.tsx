@@ -219,7 +219,7 @@ export default function BecomePainterPage() {
       // Upload des images du portfolio
       if (portfolioImages.length > 0) {
         const uploadedUrls = await Promise.all(
-          portfolioImages.map((file, index) => 
+          portfolioImages.map(file => 
             uploadImage(file, `${user?.id}/portfolio`)
           )
         );

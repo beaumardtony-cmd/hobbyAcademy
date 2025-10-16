@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Send, Loader } from 'lucide-react';
 import Link from 'next/link';
@@ -24,57 +24,35 @@ export default function ConversationPage() {
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    checkUser();
-  }, []);
+  const fetchMessages = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
 
-  useEffect(() => {
-    if (user) {
-      fetchMessages();
-      markMessagesAsRead();
-      
-      const channel = supabase
-        .channel(`conversation:${conversationId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'messages',
-            filter: `conversation_id=eq.${conversationId}`
-          },
-          (payload) => {
-            setMessages((prev) => [...prev, payload.new as MessageType]);
-            if (payload.new.sender_id !== user.id) {
-              markMessagesAsRead();
-            }
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
+      if (error) throw error;
+      setMessages(data || []);
+    } catch (error) {
+      console.error('Erreur:', error);
+    } finally {
+      setLoading(false);
     }
+  }, [conversationId]);
+
+  const markMessagesAsRead = useCallback(async () => {
+    if (!user) return;
+    
+    await supabase
+      .from('messages')
+      .update({ read: true })
+      .eq('conversation_id', conversationId)
+      .eq('read', false)
+      .neq('sender_id', user.id);
   }, [user, conversationId]);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      window.location.href = '/';
-      return;
-    }
-
-    setUser(user);
-    await fetchConversationDetails(user.id);
-  };
-
-  const fetchConversationDetails = async (userId: string) => {
+  const fetchConversationDetails = useCallback(async (userId: string) => {
     try {
       const { data: conv } = await supabase
         .from('conversations')
@@ -104,35 +82,57 @@ export default function ConversationPage() {
     } catch (error) {
       console.error('Erreur:', error);
     }
-  };
+  }, [conversationId]);
 
-  const fetchMessages = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      setMessages(data || []);
-    } catch (error) {
-      console.error('Erreur:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const markMessagesAsRead = async () => {
-    if (!user) return;
+  const checkUser = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
     
-    await supabase
-      .from('messages')
-      .update({ read: true })
-      .eq('conversation_id', conversationId)
-      .eq('read', false)
-      .neq('sender_id', user.id);
-  };
+    if (!user) {
+      window.location.href = '/';
+      return;
+    }
+
+    setUser(user);
+    await fetchConversationDetails(user.id);
+  }, [fetchConversationDetails]);
+
+  useEffect(() => {
+    checkUser();
+  }, [checkUser]);
+
+  useEffect(() => {
+    if (user) {
+      fetchMessages();
+      markMessagesAsRead();
+      
+      const channel = supabase
+        .channel(`conversation:${conversationId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages',
+            filter: `conversation_id=eq.${conversationId}`
+          },
+          (payload) => {
+            setMessages((prev) => [...prev, payload.new as MessageType]);
+            if (payload.new.sender_id !== user.id) {
+              markMessagesAsRead();
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [user, conversationId, fetchMessages, markMessagesAsRead]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();

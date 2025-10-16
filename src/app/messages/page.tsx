@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { MessageCircle, ArrowLeft, Loader } from 'lucide-react';
 import Link from 'next/link';
@@ -12,22 +12,6 @@ export default function MessagesPage() {
   const [user, setUser] = useState<User | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    checkUser();
-  }, []);
-
-  const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      window.location.href = '/';
-      return;
-    }
-
-    setUser(user);
-    await fetchConversations(user.id);
-  };
 
   const fetchConversations = async (userId: string) => {
     try {
@@ -78,6 +62,22 @@ export default function MessagesPage() {
       setLoading(false);
     }
   };
+
+  const checkUser = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      window.location.href = '/';
+      return;
+    }
+
+    setUser(user);
+    await fetchConversations(user.id);
+  }, []);
+
+  useEffect(() => {
+    checkUser();
+  }, [checkUser]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);

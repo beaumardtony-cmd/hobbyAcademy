@@ -1,13 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Heart, Loader, MapPin, Star, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
-import StarRating from '@/components/StarRating';
 
 interface FavoritePainter {
   favorite_id: string;
@@ -27,22 +26,6 @@ export default function FavoritesPage() {
   const [user, setUser] = useState<User | null>(null);
   const [favorites, setFavorites] = useState<FavoritePainter[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    checkUser();
-  }, []);
-
-  const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      router.push('/');
-      return;
-    }
-
-    setUser(user);
-    await fetchFavorites(user.id);
-  };
 
   const fetchFavorites = async (userId: string) => {
     try {
@@ -99,6 +82,22 @@ export default function FavoritesPage() {
       setLoading(false);
     }
   };
+
+  const checkUser = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      router.push('/');
+      return;
+    }
+
+    setUser(user);
+    await fetchFavorites(user.id);
+  }, [router]);
+
+  useEffect(() => {
+    checkUser();
+  }, [checkUser]);
 
   const removeFavorite = async (favoriteId: string) => {
     try {
