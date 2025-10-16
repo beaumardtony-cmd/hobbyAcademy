@@ -45,6 +45,41 @@ export default function PainterProfilePage() {
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
+  const checkUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setUser(user);
+  };
+
+  const checkIfFavorite = async () => {
+    if (!user) return;
+
+    try {
+      const { data } = await supabase
+        .from('favorites')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('painter_id', painterId)
+        .single();
+
+      setIsFavorite(!!data);
+    } catch (error) {
+      setIsFavorite(false);
+    }
+  };
+
+  const fetchFavoritesCount = async () => {
+    try {
+      const { count } = await supabase
+        .from('favorites')
+        .select('*', { count: 'exact', head: true })
+        .eq('painter_id', painterId);
+
+      setFavoritesCount(count || 0);
+    } catch (error) {
+      console.error('Erreur:', error);
+    }
+  };
+
   useEffect(() => {
     checkUser();
     fetchPainterProfile();
@@ -55,11 +90,6 @@ export default function PainterProfilePage() {
       checkIfFavorite();
     }
   }, [user, painterId]);
-
-  const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    setUser(user);
-  };
 
   const fetchPainterProfile = async () => {
     try {
@@ -131,6 +161,9 @@ export default function PainterProfilePage() {
         portfolio_images: portfolioData || [],
         recent_reviews: reviewsWithNames
       });
+
+      // Récupérer le nombre de favoris
+      await fetchFavoritesCount();
     } catch (error) {
       console.error('Erreur:', error);
       router.push('/');
@@ -173,6 +206,43 @@ export default function PainterProfilePage() {
     } catch (error) {
       console.error('Erreur:', error);
       alert('Erreur lors de l\'ouverture de la conversation');
+    }
+  };
+
+  const toggleFavorite = async () => {
+    if (!user) {
+      alert('Veuillez vous connecter pour ajouter des favoris');
+      return;
+    }
+
+    try {
+      if (isFavorite) {
+        // Retirer des favoris
+        const { error } = await supabase
+          .from('favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('painter_id', painterId);
+
+        if (error) throw error;
+        setIsFavorite(false);
+        setFavoritesCount(prev => Math.max(0, prev - 1));
+      } else {
+        // Ajouter aux favoris
+        const { error } = await supabase
+          .from('favorites')
+          .insert({
+            user_id: user.id,
+            painter_id: painterId
+          });
+
+        if (error) throw error;
+        setIsFavorite(true);
+        setFavoritesCount(prev => prev + 1);
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+      alert('Erreur lors de la gestion des favoris');
     }
   };
 
@@ -243,16 +313,23 @@ export default function PainterProfilePage() {
                   </div>
 
                   <button
-                    onClick={() => setIsFavorite(!isFavorite)}
+                    onClick={toggleFavorite}
                     className={`p-3 rounded-full transition ${
                       isFavorite 
                         ? 'bg-red-100 text-red-600' 
                         : 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-600'
                     }`}
+                    title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
                   >
                     <Heart className={`w-6 h-6 ${isFavorite ? 'fill-current' : ''}`} />
                   </button>
                 </div>
+
+                {favoritesCount > 0 && (
+                  <p className="text-sm text-gray-500 mb-3">
+                    ❤️ {favoritesCount} personne{favoritesCount > 1 ? 's' : ''} {favoritesCount > 1 ? 'ont' : 'a'} ajouté ce formateur en favori
+                  </p>
+                )}
 
                 <div className="flex flex-wrap gap-2 mb-4">
                   {painter.styles.map(style => (
