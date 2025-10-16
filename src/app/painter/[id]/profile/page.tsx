@@ -9,6 +9,7 @@ import { useParams, useRouter } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
 import StarRating from '@/components/StarRating';
 import ReviewModal from '@/components/ReviewModal';
+import { notifyNewFavorite } from '@/lib/notifications';
 
 interface PainterProfile {
   id: string;
@@ -259,6 +260,11 @@ export default function PainterProfilePage() {
           });
 
         if (error) throw error;
+		// Créer une notification pour le formateur
+await notifyNewFavorite({
+  painterId: painterId,
+  studentName: user.user_metadata?.full_name || user.email || 'Un utilisateur',
+});
         setIsFavorite(true);
         setFavoritesCount(prev => prev + 1);
       }

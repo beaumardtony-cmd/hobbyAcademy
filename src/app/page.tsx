@@ -9,6 +9,7 @@ import UserMenu from '@/components/UserMenu';
 import ForgotPasswordModal from '@/components/ForgotPasswordModal';
 import type { User } from '@supabase/supabase-js';
 import Image from 'next/image';
+import NotificationBadge from '@/components/NotificationBadge';
 
 interface Painter {
   id: string;
@@ -190,14 +191,15 @@ export default function Home() {
             </Link>
             <div className="flex items-center gap-3">
               {user ? (
-                <>
-                  <Link href="/messages">
-                    <button className="relative p-2 hover:bg-gray-100 rounded-lg transition">
-                      <MessageCircle className="w-6 h-6 text-gray-700" />
-                    </button>
-                  </Link>
-                  <UserMenu user={user} />
-                </>
+  <>
+    <NotificationBadge user={user} />
+    <Link href="/messages">
+      <button className="relative p-2 hover:bg-gray-100 rounded-lg transition">
+        <MessageCircle className="w-6 h-6 text-gray-700" />
+      </button>
+    </Link>
+    <UserMenu user={user} />
+  </>
               ) : (
                 <>
                   <button 

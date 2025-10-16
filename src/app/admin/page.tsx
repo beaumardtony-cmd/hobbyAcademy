@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { Shield, CheckCircle, XCircle, AlertCircle, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { notifyPainterApproved, notifyPainterRejected } from '@/lib/notifications';
 
 interface Painter {
   id: string;
@@ -19,6 +20,7 @@ interface Painter {
   rejection_reason?: string;
   styles: string[];
   levels: string[];
+  user_id?: string;
 }
 
 export default function AdminPage() {
@@ -101,6 +103,15 @@ export default function AdminPage() {
         .eq('id', id);
 
       if (error) throw error;
+	  // Récupérer les infos du formateur pour la notification
+    const painter = painters.find(p => p.id === id);
+    if (painter) {
+      await notifyPainterApproved({
+        userId: painter.user_id!,
+        painterName: painter.name,
+        painterId: id,
+      });
+    }
 
       setPainters(painters.map(p => 
         p.id === id ? { ...p, status: 'approved' } : p
@@ -128,6 +139,15 @@ export default function AdminPage() {
         .eq('id', id);
 
       if (error) throw error;
+	  // Récupérer les infos du formateur pour la notification
+    const painter = painters.find(p => p.id === id);
+    if (painter) {
+      await notifyPainterRejected({
+        userId: painter.user_id!,
+        painterName: painter.name,
+        reason: rejectionReason,
+      });
+    }
 
       setPainters(painters.map(p => 
         p.id === id ? { ...p, status: 'rejected', rejection_reason: rejectionReason } : p

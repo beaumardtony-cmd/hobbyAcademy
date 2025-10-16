@@ -9,6 +9,7 @@ import { useParams } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
 import type { MessageType } from '@/types/supabase';
 import ReviewModal from '@/components/ReviewModal';
+import { notifyNewMessage } from '@/lib/notifications';
 
 export default function ConversationPage() {
   const params = useParams();
@@ -149,6 +150,42 @@ export default function ConversationPage() {
         });
 
       if (error) throw error;
+	  // Créer une notification pour le destinataire
+    // Récupérer l'info de la conversation pour savoir qui est le destinataire
+    const { data: conv } = await supabase
+      .from('conversations')
+      .select('painter_id, student_id')
+      .eq('id', conversationId)
+      .single();
+    
+    if (conv) {
+
+      
+      // Si le destinataire est un painter, on prend son user_id
+      if (conv.student_id === user.id) {
+        // Je suis l'élève, le destinataire est le formateur
+        const { data: painter } = await supabase
+          .from('painters')
+          .select('user_id')
+          .eq('id', conv.painter_id)
+          .single();
+        
+        if (painter) {
+          await notifyNewMessage({
+            recipientId: painter.user_id,
+            senderName: user.user_metadata?.full_name || user.email || 'Un utilisateur',
+            conversationId,
+          });
+        }
+      } else {
+        // Je suis le formateur, le destinataire est l'élève
+        await notifyNewMessage({
+          recipientId: conv.student_id,
+          senderName: user.user_metadata?.full_name || user.email || 'Un utilisateur',
+          conversationId,
+        });
+      }
+    }
       setNewMessage('');
     } catch (error) {
       console.error('Erreur:', error);
@@ -161,6 +198,7 @@ export default function ConversationPage() {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+  
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);

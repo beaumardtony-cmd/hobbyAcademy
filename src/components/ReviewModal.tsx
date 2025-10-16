@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { X, CheckCircle, AlertCircle, Loader } from 'lucide-react';
 import StarRating from './StarRating';
+import { notifyNewReview } from '@/lib/notifications';
 
 interface ReviewModalProps {
   isOpen: boolean;
@@ -75,6 +76,12 @@ export default function ReviewModal({
             rating,
             comment: comment.trim() || null
           });
+		  // Créer une notification pour le formateur
+await notifyNewReview({
+  painterId,
+  studentName: user.user_metadata?.full_name || user.email || 'Un utilisateur',
+  rating: rating,
+});
 
         if (error) throw error;
         setMessage({ type: 'success', text: 'Merci pour votre avis !' });
