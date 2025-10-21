@@ -33,105 +33,102 @@ export default function GalleryPage() {
 
   useEffect(() => {
     const initPage = async () => {
-      // 1. Charger l'utilisateur
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      setUser(currentUser);
+      try {
+        setLoading(true);
+        
+        // 1. Charger l'utilisateur
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        setUser(currentUser);
 
-      // 2. Charger les posts
-      await loadPosts(currentUser?.id || null);
+        // 2. Récupérer tous les posts
+        const { data: postsData, error } = await supabase
+          .from('gallery_posts')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (!postsData || postsData.length === 0) {
+          setPosts([]);
+          setLoading(false);
+          return;
+        }
+
+        // 3. Récupérer les painters
+        const painterIds = [...new Set(postsData.map(p => p.painter_id).filter(Boolean))];
+        
+        let paintersMap = new Map();
+        if (painterIds.length > 0) {
+          const { data: paintersData } = await supabase
+            .from('painters')
+            .select('id, name')
+            .in('id', painterIds);
+          
+          paintersMap = new Map(paintersData?.map(p => [p.id, p.name]) || []);
+        }
+
+        // 4. Récupérer tous les likes
+        const postIds = postsData.map(p => p.id);
+        const { data: likesData } = await supabase
+          .from('gallery_likes')
+          .select('post_id, user_id')
+          .in('post_id', postIds);
+
+        // Compter les likes par post
+        const likesMap = new Map();
+        postIds.forEach(id => likesMap.set(id, { count: 0, isLiked: false }));
+        
+        likesData?.forEach(like => {
+          const current = likesMap.get(like.post_id);
+          if (current) {
+            current.count++;
+            if (currentUser && like.user_id === currentUser.id) {
+              current.isLiked = true;
+            }
+          }
+        });
+
+        // 5. Récupérer tous les commentaires
+        const { data: commentsData } = await supabase
+          .from('gallery_comments')
+          .select('post_id')
+          .in('post_id', postIds);
+
+        // Compter les commentaires par post
+        const commentsMap = new Map();
+        postIds.forEach(id => commentsMap.set(id, 0));
+        commentsData?.forEach(comment => {
+          const current = commentsMap.get(comment.post_id);
+          if (current !== undefined) {
+            commentsMap.set(comment.post_id, current + 1);
+          }
+        });
+
+        // 6. Assembler les données
+        const postsWithDetails = postsData.map(post => {
+          const likes = likesMap.get(post.id) || { count: 0, isLiked: false };
+          const commentsCount = commentsMap.get(post.id) || 0;
+          
+          return {
+            ...post,
+            user_name: 'Utilisateur',
+            painter_name: post.painter_id ? (paintersMap.get(post.painter_id) || null) : null,
+            likes_count: likes.count,
+            comments_count: commentsCount,
+            is_liked: likes.isLiked,
+          };
+        });
+
+        setPosts(postsWithDetails);
+      } catch (error) {
+        console.error('Erreur:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     initPage();
   }, []);
-
-  const loadPosts = async (userId: string | null) => {
-    try {
-      // 1. Récupérer tous les posts
-      const { data: postsData, error } = await supabase
-        .from('gallery_posts')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      if (!postsData || postsData.length === 0) {
-        setPosts([]);
-        setLoading(false);
-        return;
-      }
-
-      // 2. Récupérer les painters
-      const painterIds = [...new Set(postsData.map(p => p.painter_id).filter(Boolean))];
-      
-      let paintersMap = new Map();
-      if (painterIds.length > 0) {
-        const { data: paintersData } = await supabase
-          .from('painters')
-          .select('id, name')
-          .in('id', painterIds);
-        
-        paintersMap = new Map(paintersData?.map(p => [p.id, p.name]) || []);
-      }
-
-      // 3. Récupérer tous les likes
-      const postIds = postsData.map(p => p.id);
-      const { data: likesData } = await supabase
-        .from('gallery_likes')
-        .select('post_id, user_id')
-        .in('post_id', postIds);
-
-      // Compter les likes par post
-      const likesMap = new Map();
-      postIds.forEach(id => likesMap.set(id, { count: 0, isLiked: false }));
-      
-      likesData?.forEach(like => {
-        const current = likesMap.get(like.post_id);
-        if (current) {
-          current.count++;
-          if (userId && like.user_id === userId) {
-            current.isLiked = true;
-          }
-        }
-      });
-
-      // 4. Récupérer tous les commentaires
-      const { data: commentsData } = await supabase
-        .from('gallery_comments')
-        .select('post_id')
-        .in('post_id', postIds);
-
-      // Compter les commentaires par post
-      const commentsMap = new Map();
-      postIds.forEach(id => commentsMap.set(id, 0));
-      commentsData?.forEach(comment => {
-        const current = commentsMap.get(comment.post_id);
-        if (current !== undefined) {
-          commentsMap.set(comment.post_id, current + 1);
-        }
-      });
-
-      // 5. Assembler les données
-      const postsWithDetails = postsData.map(post => {
-        const likes = likesMap.get(post.id) || { count: 0, isLiked: false };
-        const commentsCount = commentsMap.get(post.id) || 0;
-        
-        return {
-          ...post,
-          user_name: 'Utilisateur',
-          painter_name: post.painter_id ? (paintersMap.get(post.painter_id) || null) : null,
-          likes_count: likes.count,
-          comments_count: commentsCount,
-          is_liked: likes.isLiked,
-        };
-      });
-
-      setPosts(postsWithDetails);
-    } catch (error) {
-      console.error('Erreur:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const toggleLike = async (postId: string) => {
     if (!user) {

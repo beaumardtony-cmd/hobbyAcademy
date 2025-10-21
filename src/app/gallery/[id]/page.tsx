@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Heart, MessageCircle, Send, Loader, Trash2 } from 'lucide-react';
 import Link from 'next/link';
@@ -27,7 +27,7 @@ interface Comment {
   id: string;
   user_id: string;
   post_id: string;
-  content: string;
+  comment: string;
   created_at: string;
   user_name: string;
   is_owner: boolean;
@@ -44,64 +44,88 @@ export default function PostDetailPage() {
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const checkUser = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    setUser(user);
-  }, []);
+  useEffect(() => {
+    const initPage = async () => {
+      try {
+        setLoading(true);
+        
+        // 1. Charger l'utilisateur
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        setUser(currentUser);
 
-  const fetchPost = useCallback(async () => {
-    try {
-      const { data: postData, error } = await supabase
-        .from('gallery_posts')
-        .select('*')
-        .eq('id', postId)
-        .single();
-
-      if (error) throw error;
-
-      const { data: { user: userData } } = await supabase.auth.admin.getUserById(postData.user_id);
-      
-      let painterName = null;
-      if (postData.painter_id) {
-        const { data: painterData } = await supabase
-          .from('painters')
-          .select('name')
-          .eq('id', postData.painter_id)
+        // 2. Récupérer le post
+        const { data: postData, error } = await supabase
+          .from('gallery_posts')
+          .select('*')
+          .eq('id', postId)
           .single();
-        painterName = painterData?.name;
-      }
 
-      const { count: likesCount } = await supabase
-        .from('gallery_likes')
-        .select('*', { count: 'exact', head: true })
-        .eq('post_id', postId);
+        if (error) throw error;
 
-      let isLiked = false;
-      if (user) {
-        const { data: likeData } = await supabase
+        // 3. Récupérer le painter si présent
+        let painterName = null;
+        if (postData.painter_id) {
+          const { data: painterData } = await supabase
+            .from('painters')
+            .select('name')
+            .eq('id', postData.painter_id)
+            .single();
+          painterName = painterData?.name;
+        }
+
+        // 4. Compter les likes
+        const { count: likesCount } = await supabase
           .from('gallery_likes')
-          .select('id')
+          .select('*', { count: 'exact', head: true })
+          .eq('post_id', postId);
+
+        // 5. Vérifier si l'utilisateur a liké
+        let isLiked = false;
+        if (currentUser) {
+          const { data: likeData } = await supabase
+            .from('gallery_likes')
+            .select('id')
+            .eq('post_id', postId)
+            .eq('user_id', currentUser.id)
+            .maybeSingle();
+          isLiked = !!likeData;
+        }
+
+        setPost({
+          ...postData,
+          user_name: 'Utilisateur',
+          painter_name: painterName,
+          likes_count: likesCount || 0,
+          is_liked: isLiked,
+        });
+
+        // 6. Charger les commentaires
+        const { data: commentsData, error: commentsError } = await supabase
+          .from('gallery_comments')
+          .select('*')
           .eq('post_id', postId)
-          .eq('user_id', user.id)
-          .single();
-        isLiked = !!likeData;
+          .order('created_at', { ascending: true });
+
+        if (!commentsError && commentsData) {
+          const commentsWithDetails = commentsData.map(comment => ({
+            ...comment,
+            user_name: 'Utilisateur',
+            is_owner: currentUser?.id === comment.user_id,
+          }));
+
+          setComments(commentsWithDetails);
+        }
+      } catch (error) {
+        console.error('Erreur:', error);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      setPost({
-        ...postData,
-        user_name: userData?.user_metadata?.full_name || userData?.email?.split('@')[0] || 'Utilisateur',
-        painter_name: painterName,
-        likes_count: likesCount || 0,
-        is_liked: isLiked,
-      });
-    } catch (error) {
-      console.error('Erreur:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [postId, user]);
+    initPage();
+  }, [postId]);
 
-  const fetchComments = useCallback(async () => {
+  const reloadComments = async () => {
     try {
       const { data: commentsData, error } = await supabase
         .from('gallery_comments')
@@ -111,34 +135,17 @@ export default function PostDetailPage() {
 
       if (error) throw error;
 
-      const commentsWithDetails = await Promise.all(
-        (commentsData || []).map(async (comment) => {
-          const { data: { user: userData } } = await supabase.auth.admin.getUserById(comment.user_id);
-          
-          return {
-            ...comment,
-            user_name: userData?.user_metadata?.full_name || userData?.email?.split('@')[0] || 'Utilisateur',
-            is_owner: user?.id === comment.user_id,
-          };
-        })
-      );
+      const commentsWithDetails = (commentsData || []).map(comment => ({
+        ...comment,
+        user_name: 'Utilisateur',
+        is_owner: user?.id === comment.user_id,
+      }));
 
       setComments(commentsWithDetails);
     } catch (error) {
       console.error('Erreur:', error);
     }
-  }, [postId, user]);
-
-  useEffect(() => {
-    checkUser();
-  }, [checkUser]);
-
-  useEffect(() => {
-    if (user !== null) {
-      fetchPost();
-      fetchComments();
-    }
-  }, [user, fetchPost, fetchComments]);
+  };
 
   const toggleLike = async () => {
     if (!user) {
@@ -190,16 +197,16 @@ export default function PostDetailPage() {
         .insert({
           post_id: postId,
           user_id: user.id,
-          content: commentText,
+          comment: commentText,
         });
 
       if (error) throw error;
 
       setCommentText('');
-      await fetchComments();
+      await reloadComments();
     } catch (error) {
       console.error('Erreur:', error);
-      alert('Erreur lors de l&apos;envoi du commentaire');
+      alert('Erreur lors de l\'envoi du commentaire');
     } finally {
       setSubmitting(false);
     }
@@ -216,7 +223,7 @@ export default function PostDetailPage() {
 
       if (error) throw error;
 
-      await fetchComments();
+      await reloadComments();
     } catch (error) {
       console.error('Erreur:', error);
       alert('Erreur lors de la suppression');
@@ -231,7 +238,7 @@ export default function PostDetailPage() {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'À l&apos;instant';
+    if (diffMins < 1) return 'À l\'instant';
     if (diffMins < 60) return `Il y a ${diffMins} min`;
     if (diffHours < 24) return `Il y a ${diffHours}h`;
     if (diffDays < 7) return `Il y a ${diffDays}j`;
@@ -364,7 +371,7 @@ export default function PostDetailPage() {
                           </button>
                         )}
                       </div>
-                      <p className="text-gray-700 text-sm whitespace-pre-wrap">{comment.content}</p>
+                      <p className="text-gray-700 text-sm whitespace-pre-wrap">{comment.comment}</p>
                     </div>
                   ))
                 )}
@@ -395,7 +402,7 @@ export default function PostDetailPage() {
               ) : (
                 <div className="text-center py-4 bg-gray-50 rounded-lg">
                   <p className="text-gray-600 mb-2">Connectez-vous pour commenter</p>
-                  <Link href="/login">
+                  <Link href="/">
                     <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium">
                       Se connecter
                     </button>
