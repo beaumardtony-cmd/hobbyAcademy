@@ -19,7 +19,27 @@ export default function AvailabilityDisplay({
     );
   }
 
-  // Parser la disponibilité (peut être string JSON ou objet)
+  // Si c'est une chaîne simple (pas JSON), l'afficher directement
+  if (typeof availability === 'string') {
+    // Vérifier si c'est du JSON ou du texte simple
+    try {
+      const parsed = JSON.parse(availability);
+      // Si le parsing réussit et que c'est un objet, continuer avec le format structuré
+      if (typeof parsed === 'object' && parsed !== null) {
+        // Le code de parsing structuré continue ci-dessous
+      }
+    } catch {
+      // Ce n'est pas du JSON, c'est du texte simple - l'afficher tel quel
+      return (
+        <div className={`flex items-center gap-2 text-sm ${className}`}>
+          <Clock className="w-4 h-4 text-purple-600 flex-shrink-0" />
+          <span className="text-gray-700">{availability}</span>
+        </div>
+      );
+    }
+  }
+
+  // Parser la disponibilité (format JSON structuré)
   let availabilityObj: Record<string, string[]>;
   
   try {
@@ -29,9 +49,11 @@ export default function AvailabilityDisplay({
       availabilityObj = availability as Record<string, string[]>;
     }
   } catch {
+    // En cas d'erreur, afficher quand même le texte
     return (
-      <div className={`text-gray-500 text-sm ${className}`}>
-        Format de disponibilités invalide
+      <div className={`flex items-center gap-2 text-sm ${className}`}>
+        <Clock className="w-4 h-4 text-purple-600 flex-shrink-0" />
+        <span className="text-gray-700">{String(availability)}</span>
       </div>
     );
   }

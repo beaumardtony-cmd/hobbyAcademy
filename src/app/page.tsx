@@ -80,10 +80,10 @@ export default function Home() {
 
           // Récupérer les statistiques d'avis
           const { data: ratingsData } = await supabase
-            .from('painter_ratings')
-            .select('average_rating, review_count')
-            .eq('painter_id', painter.id)
-            .single();
+  .from('painter_ratings')
+  .select('average_rating, review_count')
+  .eq('painter_id', painter.id)
+  .maybeSingle();
 
           return {
             ...painter,

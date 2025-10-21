@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Heart, MessageCircle, Plus, Loader, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
@@ -31,13 +31,22 @@ export default function GalleryPage() {
 
   const STYLES = ['Tous', 'Warhammer', 'Fantasy', 'Sci-Fi', 'Historique', 'Anime', 'Steampunk', 'Post-Apocalyptique'];
 
-  const checkUser = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    setUser(user);
+  useEffect(() => {
+    const initPage = async () => {
+      // 1. Charger l'utilisateur
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      setUser(currentUser);
+
+      // 2. Charger les posts
+      await loadPosts(currentUser?.id || null);
+    };
+
+    initPage();
   }, []);
 
-  const fetchPosts = useCallback(async () => {
+  const loadPosts = async (userId: string | null) => {
     try {
+      // 1. Récupérer tous les posts
       const { data: postsData, error } = await supabase
         .from('gallery_posts')
         .select('*')
@@ -45,57 +54,76 @@ export default function GalleryPage() {
 
       if (error) throw error;
 
-      // Pour chaque post, récupérer les infos supplémentaires
-      const postsWithDetails = await Promise.all(
-        (postsData || []).map(async (post) => {
-          // Nom de l'utilisateur
-          const { data: { user: userData } } = await supabase.auth.admin.getUserById(post.user_id);
-          
-          // Nom du formateur si présent
-          let painterName = null;
-          if (post.painter_id) {
-            const { data: painterData } = await supabase
-              .from('painters')
-              .select('name')
-              .eq('id', post.painter_id)
-              .single();
-            painterName = painterData?.name;
+      if (!postsData || postsData.length === 0) {
+        setPosts([]);
+        setLoading(false);
+        return;
+      }
+
+      // 2. Récupérer les painters
+      const painterIds = [...new Set(postsData.map(p => p.painter_id).filter(Boolean))];
+      
+      let paintersMap = new Map();
+      if (painterIds.length > 0) {
+        const { data: paintersData } = await supabase
+          .from('painters')
+          .select('id, name')
+          .in('id', painterIds);
+        
+        paintersMap = new Map(paintersData?.map(p => [p.id, p.name]) || []);
+      }
+
+      // 3. Récupérer tous les likes
+      const postIds = postsData.map(p => p.id);
+      const { data: likesData } = await supabase
+        .from('gallery_likes')
+        .select('post_id, user_id')
+        .in('post_id', postIds);
+
+      // Compter les likes par post
+      const likesMap = new Map();
+      postIds.forEach(id => likesMap.set(id, { count: 0, isLiked: false }));
+      
+      likesData?.forEach(like => {
+        const current = likesMap.get(like.post_id);
+        if (current) {
+          current.count++;
+          if (userId && like.user_id === userId) {
+            current.isLiked = true;
           }
+        }
+      });
 
-          // Compter les likes
-          const { count: likesCount } = await supabase
-            .from('gallery_likes')
-            .select('*', { count: 'exact', head: true })
-            .eq('post_id', post.id);
+      // 4. Récupérer tous les commentaires
+      const { data: commentsData } = await supabase
+        .from('gallery_comments')
+        .select('post_id')
+        .in('post_id', postIds);
 
-          // Compter les commentaires
-          const { count: commentsCount } = await supabase
-            .from('gallery_comments')
-            .select('*', { count: 'exact', head: true })
-            .eq('post_id', post.id);
+      // Compter les commentaires par post
+      const commentsMap = new Map();
+      postIds.forEach(id => commentsMap.set(id, 0));
+      commentsData?.forEach(comment => {
+        const current = commentsMap.get(comment.post_id);
+        if (current !== undefined) {
+          commentsMap.set(comment.post_id, current + 1);
+        }
+      });
 
-          // Vérifier si l'utilisateur a liké
-          let isLiked = false;
-          if (user) {
-            const { data: likeData } = await supabase
-              .from('gallery_likes')
-              .select('id')
-              .eq('post_id', post.id)
-              .eq('user_id', user.id)
-              .single();
-            isLiked = !!likeData;
-          }
-
-          return {
-            ...post,
-            user_name: userData?.user_metadata?.full_name || userData?.email?.split('@')[0] || 'Utilisateur',
-            painter_name: painterName,
-            likes_count: likesCount || 0,
-            comments_count: commentsCount || 0,
-            is_liked: isLiked,
-          };
-        })
-      );
+      // 5. Assembler les données
+      const postsWithDetails = postsData.map(post => {
+        const likes = likesMap.get(post.id) || { count: 0, isLiked: false };
+        const commentsCount = commentsMap.get(post.id) || 0;
+        
+        return {
+          ...post,
+          user_name: 'Utilisateur',
+          painter_name: post.painter_id ? (paintersMap.get(post.painter_id) || null) : null,
+          likes_count: likes.count,
+          comments_count: commentsCount,
+          is_liked: likes.isLiked,
+        };
+      });
 
       setPosts(postsWithDetails);
     } catch (error) {
@@ -103,17 +131,7 @@ export default function GalleryPage() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
-
-  useEffect(() => {
-    checkUser();
-  }, [checkUser]);
-
-  useEffect(() => {
-    if (user !== null) {
-      fetchPosts();
-    }
-  }, [user, fetchPosts]);
+  };
 
   const toggleLike = async (postId: string) => {
     if (!user) {
@@ -126,7 +144,6 @@ export default function GalleryPage() {
 
     try {
       if (post.is_liked) {
-        // Unlike
         await supabase
           .from('gallery_likes')
           .delete()
@@ -139,7 +156,6 @@ export default function GalleryPage() {
             : p
         ));
       } else {
-        // Like
         await supabase
           .from('gallery_likes')
           .insert({
