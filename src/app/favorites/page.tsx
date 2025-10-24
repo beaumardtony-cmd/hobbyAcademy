@@ -7,6 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
+import Header from '@/components/Header'; // ✅ Import ajouté
 
 interface FavoritePainter {
   favorite_id: string;
@@ -160,8 +161,11 @@ export default function FavoritesPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-purple-100">
+      {/* ✅ Nouveau Header réutilisable */}
+      <Header user={user} />
+
+      {/* ✅ Section titre conservée pour le contexte de la page */}
+      <div className="bg-white shadow-sm border-b border-purple-100">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
             <Link href="/dashboard">
@@ -175,7 +179,7 @@ export default function FavoritesPage() {
             </div>
           </div>
         </div>
-      </header>
+      </div>
 
       <div className="max-w-6xl mx-auto px-4 py-8">
         {favorites.length === 0 ? (

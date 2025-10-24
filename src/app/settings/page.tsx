@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { User as UserIcon, Mail, Lock, ArrowLeft, Save, Loader, CheckCircle, AlertCircle } from 'lucide-react';
-import Link from 'next/link';
+import { User as UserIcon, Mail, Lock, Save, Loader, CheckCircle, AlertCircle } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
+import Header from '@/components/Header';
 
 export default function SettingsPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -159,8 +159,8 @@ export default function SettingsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <Loader className="w-16 h-16 text-purple-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Chargement...</p>
+          <Loader className="w-16 h-16 text-slate-600 animate-spin mx-auto mb-4" />
+          <p className="text-slate-600">Chargement...</p>
         </div>
       </div>
     );
@@ -169,27 +169,22 @@ export default function SettingsPage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-purple-100">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard">
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition">
-                <ArrowLeft className="w-5 h-5 text-gray-600" />
-              </button>
-            </Link>
-            <h1 className="text-2xl font-bold text-gray-800">Paramètres du compte</h1>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200/50">
+      {/* ✅ Header réutilisable - remplace les 13 lignes de code du header personnalisé */}
+      <Header user={user} showAuthButtons={false} />
 
       <div className="max-w-4xl mx-auto px-4 py-8">
+        {/* Page Title */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-slate-800">Paramètres du compte</h1>
+          <p className="text-slate-600 mt-2">Gérez vos informations personnelles et votre sécurité</p>
+        </div>
+
         {/* Profile Information Section */}
-        <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+        <div className="bg-white rounded-xl shadow-md p-6 mb-6 border border-slate-200/60">
           <div className="flex items-center gap-3 mb-6">
-            <UserIcon className="w-6 h-6 text-purple-600" />
-            <h2 className="text-xl font-bold text-gray-800">Informations personnelles</h2>
+            <UserIcon className="w-6 h-6 text-slate-600" />
+            <h2 className="text-xl font-bold text-slate-800">Informations personnelles</h2>
           </div>
 
           {profileMessage && (
@@ -209,30 +204,30 @@ export default function SettingsPage() {
 
           <form onSubmit={handleProfileUpdate} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Nom complet
               </label>
               <input
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition"
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none transition"
                 placeholder="Jean Dupont"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Adresse email
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition"
+                  className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none transition"
                   placeholder="votre@email.com"
                   required
                 />
@@ -248,7 +243,7 @@ export default function SettingsPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-slate-500 to-slate-700 text-white rounded-lg font-semibold hover:from-slate-600 hover:to-slate-800 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
               >
                 {saving ? (
                   <>
@@ -267,10 +262,10 @@ export default function SettingsPage() {
         </div>
 
         {/* Password Change Section */}
-        <div className="bg-white rounded-xl shadow-md p-6">
+        <div className="bg-white rounded-xl shadow-md p-6 border border-slate-200/60">
           <div className="flex items-center gap-3 mb-6">
-            <Lock className="w-6 h-6 text-purple-600" />
-            <h2 className="text-xl font-bold text-gray-800">Changer le mot de passe</h2>
+            <Lock className="w-6 h-6 text-slate-600" />
+            <h2 className="text-xl font-bold text-slate-800">Changer le mot de passe</h2>
           </div>
 
           {passwordMessage && (
@@ -290,16 +285,16 @@ export default function SettingsPage() {
 
           <form onSubmit={handlePasswordUpdate} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Mot de passe actuel
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input
                   type="password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition"
+                  className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none transition"
                   placeholder="••••••••"
                   required
                 />
@@ -307,37 +302,37 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Nouveau mot de passe
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition"
+                  className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none transition"
                   placeholder="••••••••"
                   required
                   minLength={6}
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 Minimum 6 caractères
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Confirmer le nouveau mot de passe
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition"
+                  className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none transition"
                   placeholder="••••••••"
                   required
                   minLength={6}
@@ -349,7 +344,7 @@ export default function SettingsPage() {
             {newPassword.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm">
-                  <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
                     <div 
                       className={`h-full transition-all ${
                         newPassword.length < 6 ? 'w-1/3 bg-red-500' :
@@ -375,7 +370,7 @@ export default function SettingsPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-slate-500 to-slate-700 text-white rounded-lg font-semibold hover:from-slate-600 hover:to-slate-800 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
               >
                 {saving ? (
                   <>
@@ -394,16 +389,16 @@ export default function SettingsPage() {
         </div>
 
         {/* Account Info */}
-        <div className="bg-white rounded-xl shadow-md p-6 mt-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-4">Informations du compte</h3>
+        <div className="bg-white rounded-xl shadow-md p-6 mt-6 border border-slate-200/60">
+          <h3 className="text-lg font-bold text-slate-800 mb-4">Informations du compte</h3>
           <div className="space-y-3 text-sm">
-            <div className="flex justify-between py-2 border-b border-gray-100">
-              <span className="text-gray-600">Identifiant unique</span>
-              <span className="text-gray-800 font-mono text-xs">{user.id}</span>
+            <div className="flex justify-between py-2 border-b border-slate-100">
+              <span className="text-slate-600">Identifiant unique</span>
+              <span className="text-slate-800 font-mono text-xs">{user.id}</span>
             </div>
-            <div className="flex justify-between py-2 border-b border-gray-100">
-              <span className="text-gray-600">Compte créé le</span>
-              <span className="text-gray-800">
+            <div className="flex justify-between py-2 border-b border-slate-100">
+              <span className="text-slate-600">Compte créé le</span>
+              <span className="text-slate-800">
                 {new Date(user.created_at || Date.now()).toLocaleDateString('fr-FR', {
                   year: 'numeric',
                   month: 'long',
@@ -412,8 +407,8 @@ export default function SettingsPage() {
               </span>
             </div>
             <div className="flex justify-between py-2">
-              <span className="text-gray-600">Dernière connexion</span>
-              <span className="text-gray-800">
+              <span className="text-slate-600">Dernière connexion</span>
+              <span className="text-slate-800">
                 {user.last_sign_in_at 
                   ? new Date(user.last_sign_in_at).toLocaleDateString('fr-FR', {
                       year: 'numeric',

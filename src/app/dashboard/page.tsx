@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Eye, MessageCircle, Star, Heart, TrendingUp, Users, Award, Edit, Palette, Search } from 'lucide-react';
+import { Eye, MessageCircle, Star, Heart, TrendingUp, Users, Award, Edit, Palette, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
+import Header from '@/components/Header';
 
 interface PainterStats {
   painter_id: string;
@@ -211,65 +212,54 @@ export default function DashboardPage() {
   // Dashboard Élève
   if (!isPainter) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200/50">
         {/* Header */}
-        <header className="bg-white shadow-sm border-b border-purple-100">
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Link href="/">
-                  <button className="p-2 hover:bg-gray-100 rounded-lg transition">
-                    <ArrowLeft className="w-5 h-5 text-gray-600" />
-                  </button>
-                </Link>
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-800">Mon Tableau de bord</h1>
-                  <p className="text-sm text-gray-600">Bienvenue, {user?.user_metadata?.full_name || user?.email}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
+        <Header user={user} />
 
         <div className="max-w-7xl mx-auto px-4 py-8">
           {/* Actions principales */}
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-slate-800 mb-2">Mon Tableau de bord</h2>
+            <p className="text-slate-600">Bienvenue, {user?.user_metadata?.full_name || user?.email}</p>
+          </div>
+
           <div className="grid md:grid-cols-3 gap-6 mb-8">
             <Link href="/" className="block">
-              <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition cursor-pointer border-2 border-transparent hover:border-purple-200">
-                <Search className="w-8 h-8 text-purple-600 mb-3" />
-                <h3 className="font-bold text-gray-800 mb-1">Trouver un formateur</h3>
-                <p className="text-sm text-gray-600">Découvrez nos formateurs experts</p>
+              <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition cursor-pointer border-2 border-transparent hover:border-slate-300">
+                <Search className="w-8 h-8 text-slate-600 mb-3" />
+                <h3 className="font-bold text-slate-800 mb-1">Trouver un formateur</h3>
+                <p className="text-sm text-slate-600">Découvrez nos formateurs experts</p>
               </div>
             </Link>
 
             <Link href="/messages" className="block">
-              <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition cursor-pointer border-2 border-transparent hover:border-purple-200">
-                <MessageCircle className="w-8 h-8 text-blue-600 mb-3" />
-                <h3 className="font-bold text-gray-800 mb-1">Mes Messages</h3>
-                <p className="text-sm text-gray-600">Contactez vos formateurs</p>
+              <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition cursor-pointer border-2 border-transparent hover:border-slate-300">
+                <MessageCircle className="w-8 h-8 text-slate-600 mb-3" />
+                <h3 className="font-bold text-slate-800 mb-1">Mes Messages</h3>
+                <p className="text-sm text-slate-600">Contactez vos formateurs</p>
               </div>
             </Link>
 
             <Link href="/favorites" className="block">
-              <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition cursor-pointer border-2 border-transparent hover:border-purple-200">
-                <Heart className="w-8 h-8 text-red-600 mb-3" />
-                <h3 className="font-bold text-gray-800 mb-1">Mes Favoris</h3>
-                <p className="text-sm text-gray-600">Formateurs favoris</p>
+              <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition cursor-pointer border-2 border-transparent hover:border-slate-300">
+                <Heart className="w-8 h-8 text-slate-600 mb-3" />
+                <h3 className="font-bold text-slate-800 mb-1">Mes Favoris</h3>
+                <p className="text-sm text-slate-600">Formateurs favoris</p>
               </div>
             </Link>
           </div>
 
           {/* Devenir formateur */}
-          <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl shadow-lg p-8 text-white">
+          <div className="bg-gradient-to-r from-slate-500 via-slate-600 to-slate-700 rounded-xl shadow-lg p-8 text-white">
             <div className="flex items-center gap-4 mb-4">
               <Palette className="w-12 h-12" />
               <div>
                 <h2 className="text-2xl font-bold mb-1">Vous êtes passionné de peinture ?</h2>
-                <p className="text-purple-100">Partagez votre savoir-faire et devenez formateur sur notre plateforme</p>
+                <p className="text-slate-100">Partagez votre savoir-faire et devenez formateur sur notre plateforme</p>
               </div>
             </div>
             <Link href="/become-painter">
-              <button className="px-6 py-3 bg-white text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition">
+              <button className="px-6 py-3 bg-white text-slate-700 rounded-lg font-semibold hover:bg-slate-100 transition">
                 Devenir formateur
               </button>
             </Link>
@@ -281,33 +271,25 @@ export default function DashboardPage() {
 
   // Dashboard Formateur
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200/50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-purple-100">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/">
-                <button className="p-2 hover:bg-gray-100 rounded-lg transition">
-                  <ArrowLeft className="w-5 h-5 text-gray-600" />
-                </button>
-              </Link>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-800">Tableau de bord formateur</h1>
-                <p className="text-sm text-gray-600">Bienvenue, {painterName}</p>
-              </div>
-            </div>
-            <Link href={`/painter/${painterId}/profile`}>
-              <button className="flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition font-medium">
-                <Edit className="w-4 h-4" />
-                Voir mon profil
-              </button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <Header user={user} />
 
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* En-tête du dashboard */}
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold text-slate-800 mb-2">Tableau de bord formateur</h2>
+            <p className="text-slate-600">Bienvenue, {painterName}</p>
+          </div>
+          <Link href={`/painter/${painterId}/profile`}>
+            <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-slate-500 to-slate-700 text-white rounded-lg hover:from-slate-300 hover:to-slate-500 transition font-medium shadow-sm hover:shadow-md">
+              <Edit className="w-4 h-4" />
+              Voir mon profil
+            </button>
+          </Link>
+        </div>
+
         {/* Stats Cards */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* Vues du profil */}
@@ -469,7 +451,7 @@ export default function DashboardPage() {
         {/* Actions rapides */}
         <div className="mt-6 grid md:grid-cols-3 gap-4">
           <Link href="/messages" className="block">
-            <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition cursor-pointer border-2 border-transparent hover:border-purple-200">
+            <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition cursor-pointer border-2 border-transparent hover:border-slate-300">
               <MessageCircle className="w-8 h-8 text-purple-600 mb-3" />
               <h3 className="font-bold text-gray-800 mb-1">Messages</h3>
               <p className="text-sm text-gray-600">Répondre aux élèves</p>
@@ -477,7 +459,7 @@ export default function DashboardPage() {
           </Link>
 
           <Link href={`/painter/${painterId}/reviews`} className="block">
-            <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition cursor-pointer border-2 border-transparent hover:border-purple-200">
+            <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition cursor-pointer border-2 border-transparent hover:border-slate-300">
               <Star className="w-8 h-8 text-yellow-600 mb-3" />
               <h3 className="font-bold text-gray-800 mb-1">Avis</h3>
               <p className="text-sm text-gray-600">Voir tous mes avis</p>
@@ -485,7 +467,7 @@ export default function DashboardPage() {
           </Link>
 
           <Link href={`/painter/${painterId}/profile`} className="block">
-            <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition cursor-pointer border-2 border-transparent hover:border-purple-200">
+            <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition cursor-pointer border-2 border-transparent hover:border-slate-300">
               <Users className="w-8 h-8 text-blue-600 mb-3" />
               <h3 className="font-bold text-gray-800 mb-1">Mon profil</h3>
               <p className="text-sm text-gray-600">Mettre à jour mon profil</p>

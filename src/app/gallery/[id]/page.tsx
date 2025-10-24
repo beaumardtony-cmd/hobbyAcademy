@@ -7,6 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
+import Header from '@/components/Header'; // ✅ Import ajouté
 
 interface Post {
   id: string;
@@ -249,7 +250,7 @@ export default function PostDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader className="w-16 h-16 text-purple-600 animate-spin" />
+        <Loader className="w-16 h-16 text-slate-600 animate-spin" />
       </div>
     );
   }
@@ -258,9 +259,9 @@ export default function PostDetailPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Post introuvable</h2>
+          <h2 className="text-2xl font-bold text-slate-800 mb-4">Post introuvable</h2>
           <Link href="/gallery">
-            <button className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
+            <button className="px-6 py-3 bg-gradient-to-r from-slate-500 to-slate-700 text-white rounded-lg hover:from-slate-300 hover:to-slate-500 transition">
               Retour à la galerie
             </button>
           </Link>
@@ -270,20 +271,25 @@ export default function PostDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
-      <header className="bg-white shadow-sm border-b border-purple-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200">
+      {/* ✅ Nouveau Header réutilisable */}
+      <Header user={user} />
+
+      {/* ✅ Section bouton retour conservée pour le contexte */}
+      <div className="bg-white shadow-sm border-b border-slate-200">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <Link href="/gallery">
-            <button className="flex items-center gap-2 text-gray-600 hover:text-purple-600 transition">
+            <button className="flex items-center gap-2 text-slate-500 hover:text-slate-300 transition">
               <ArrowLeft className="w-5 h-5" />
               <span className="font-medium">Retour à la galerie</span>
             </button>
           </Link>
         </div>
-      </header>
+      </div>
 
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="grid lg:grid-cols-2 gap-8">
+          {/* Image du post */}
           <div className="bg-white rounded-xl shadow-lg overflow-hidden">
             <div className="relative aspect-square">
               <Image
@@ -296,87 +302,92 @@ export default function PostDetailPage() {
             </div>
           </div>
 
+          {/* Détails et commentaires */}
           <div className="bg-white rounded-xl shadow-lg p-6 flex flex-col">
             <div className="mb-6">
-              <h1 className="text-3xl font-bold text-gray-800 mb-4">{post.title}</h1>
+              <h1 className="text-3xl font-bold text-slate-800 mb-4">{post.title}</h1>
 
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center text-white font-semibold">
+                {/* Avatar principal du post - style gris cohérent */}
+                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 font-semibold border border-gray-300">
                   {post.user_name[0].toUpperCase()}
                 </div>
                 <div>
-                  <p className="font-medium text-gray-800">{post.user_name}</p>
-                  <p className="text-sm text-gray-500">{formatDate(post.created_at)}</p>
+                  <p className="font-medium text-slate-800">{post.user_name}</p>
+                  <p className="text-sm text-slate-500">{formatDate(post.created_at)}</p>
                 </div>
               </div>
 
               {post.description && (
-                <p className="text-gray-700 mb-4 whitespace-pre-wrap">{post.description}</p>
+                <p className="text-slate-700 mb-4 whitespace-pre-wrap">{post.description}</p>
               )}
 
               {post.style && (
-                <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium mb-4">
+                <span className="inline-block px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-sm font-medium mb-4">
                   {post.style}
                 </span>
               )}
 
               {post.painter_name && (
-                <p className="text-sm text-gray-600">
-                  Enseigné par <span className="font-semibold text-purple-600">{post.painter_name}</span>
+                <p className="text-sm text-slate-600">
+                  Enseigné par <span className="font-semibold text-slate-700">{post.painter_name}</span>
                 </p>
               )}
 
-              <div className="flex items-center gap-6 pt-4 border-t border-gray-100">
+              <div className="flex items-center gap-6 pt-4 border-t border-slate-100">
                 <button
                   onClick={toggleLike}
-                  className="flex items-center gap-2 text-gray-600 hover:text-red-600 transition"
+                  className="flex items-center gap-2 text-slate-500 hover:text-slate-300 transition-colors group"
                 >
-                  <Heart className={`w-6 h-6 ${post.is_liked ? 'fill-red-600 text-red-600' : ''}`} />
-                  <span className="font-medium">{post.likes_count}</span>
+                  <Heart className={`w-6 h-6 transition-colors ${post.is_liked ? 'fill-slate-400 text-slate-400' : 'group-hover:text-slate-300'}`} />
+                  <span className="font-medium group-hover:text-slate-300 transition-colors">{post.likes_count}</span>
                 </button>
-                <div className="flex items-center gap-2 text-gray-600">
-                  <MessageCircle className="w-6 h-6" />
-                  <span className="font-medium">{comments.length}</span>
+                <div className="flex items-center gap-2 text-slate-500 hover:text-slate-300 transition-colors group cursor-default">
+                  <MessageCircle className="w-6 h-6 group-hover:text-slate-300 transition-colors" />
+                  <span className="font-medium group-hover:text-slate-300 transition-colors">{comments.length}</span>
                 </div>
               </div>
             </div>
 
-            <div className="flex-1 flex flex-col border-t border-gray-100 pt-6">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">
+            {/* Section commentaires */}
+            <div className="flex-1 flex flex-col border-t border-slate-100 pt-6">
+              <h3 className="text-lg font-bold text-slate-800 mb-4">
                 Commentaires ({comments.length})
               </h3>
 
               <div className="flex-1 overflow-y-auto mb-4 space-y-4 max-h-96">
                 {comments.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">Aucun commentaire pour le moment</p>
+                  <p className="text-slate-500 text-center py-8">Aucun commentaire pour le moment</p>
                 ) : (
                   comments.map((comment) => (
-                    <div key={comment.id} className="bg-gray-50 rounded-lg p-4">
+                    <div key={comment.id} className="bg-slate-50 rounded-lg p-4">
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center text-white text-sm font-semibold">
+                          {/* Avatar des commentaires - style gris cohérent */}
+                          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 text-sm font-semibold border border-gray-300">
                             {comment.user_name[0].toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-medium text-gray-800 text-sm">{comment.user_name}</p>
-                            <p className="text-xs text-gray-500">{formatDate(comment.created_at)}</p>
+                            <p className="font-medium text-slate-800 text-sm">{comment.user_name}</p>
+                            <p className="text-xs text-slate-500">{formatDate(comment.created_at)}</p>
                           </div>
                         </div>
                         {comment.is_owner && (
                           <button
                             onClick={() => deleteComment(comment.id)}
-                            className="text-red-600 hover:text-red-700 transition"
+                            className="text-slate-400 hover:text-slate-600 transition"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
                         )}
                       </div>
-                      <p className="text-gray-700 text-sm whitespace-pre-wrap">{comment.comment}</p>
+                      <p className="text-slate-700 text-sm whitespace-pre-wrap">{comment.comment}</p>
                     </div>
                   ))
                 )}
               </div>
 
+              {/* Formulaire de commentaire */}
               {user ? (
                 <form onSubmit={submitComment} className="flex gap-2">
                   <input
@@ -384,13 +395,13 @@ export default function PostDetailPage() {
                     value={commentText}
                     onChange={(e) => setCommentText(e.target.value)}
                     placeholder="Ajouter un commentaire..."
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-400 focus:border-transparent"
                     disabled={submitting}
                   />
                   <button
                     type="submit"
                     disabled={submitting || !commentText.trim()}
-                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-gradient-to-r from-slate-500 to-slate-700 text-white rounded-lg hover:from-slate-300 hover:to-slate-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {submitting ? (
                       <Loader className="w-5 h-5 animate-spin" />
@@ -400,10 +411,10 @@ export default function PostDetailPage() {
                   </button>
                 </form>
               ) : (
-                <div className="text-center py-4 bg-gray-50 rounded-lg">
-                  <p className="text-gray-600 mb-2">Connectez-vous pour commenter</p>
+                <div className="text-center py-4 bg-slate-50 rounded-lg">
+                  <p className="text-slate-600 mb-2">Connectez-vous pour commenter</p>
                   <Link href="/">
-                    <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium">
+                    <button className="px-4 py-2 bg-gradient-to-r from-slate-500 to-slate-700 text-white rounded-lg hover:from-slate-300 hover:to-slate-500 transition text-sm font-medium">
                       Se connecter
                     </button>
                   </Link>

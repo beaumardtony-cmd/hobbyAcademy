@@ -6,6 +6,7 @@ import { ArrowLeft, Upload, X, CheckCircle, AlertCircle, Loader, Image as ImageI
 import Link from 'next/link';
 import Image from 'next/image';
 import type { User } from '@supabase/supabase-js';
+import Header from '@/components/Header'; // ✅ Import ajouté
 
 const STYLES = ['Warhammer', 'Fantasy', 'Sci-Fi', 'Historique', 'Anime', 'Steampunk', 'Post-Apocalyptique'];
 const LEVELS = ['Débutant', 'Intermédiaire', 'Avancé', 'Tous niveaux'];
@@ -209,7 +210,7 @@ export default function BecomePainterPage() {
         painter_id: painterData.id,
         level: level
       }));
-
+      
       const { error: levelsError } = await supabase
         .from('painter_levels')
         .insert(levelsData);
@@ -218,41 +219,39 @@ export default function BecomePainterPage() {
 
       // Upload des images du portfolio
       if (portfolioImages.length > 0) {
-        const uploadedUrls = await Promise.all(
-          portfolioImages.map(file => 
-            uploadImage(file, `${user?.id}/portfolio`)
-          )
-        );
+        const uploadPromises = portfolioImages.map(async (file, index) => {
+          const uploadedUrl = await uploadImage(file, `${user?.id}/portfolio`);
+          if (uploadedUrl) {
+            return {
+              painter_id: painterData.id,
+              image_url: uploadedUrl,
+              title: `Œuvre ${index + 1}`,
+              description: '',
+              style: selectedStyles[0] || 'Autre'
+            };
+          }
+          return null;
+        });
 
-        const portfolioData = uploadedUrls
-          .filter(url => url !== null)
-          .map((url, index) => ({
-            painter_id: painterData.id,
-            image_url: url!,
-            display_order: index
-          }));
-
-        if (portfolioData.length > 0) {
+        const galleryItems = (await Promise.all(uploadPromises)).filter(item => item !== null);
+        
+        if (galleryItems.length > 0) {
           await supabase
-            .from('painter_portfolio_images')
-            .insert(portfolioData);
+            .from('gallery_items')
+            .insert(galleryItems);
         }
       }
 
       setMessage({
         type: 'success',
-        text: 'Votre candidature a été soumise avec succès ! Notre équipe va l\'examiner sous 48h.'
+        text: 'Votre candidature a été envoyée avec succès ! Elle sera examinée par notre équipe sous 24-48h.'
       });
-
       setAlreadyPainter(true);
-
-      // Scroll vers le haut
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {
       console.error('Erreur:', error);
       setMessage({
         type: 'error',
-        text: 'Une erreur est survenue lors de la soumission'
+        text: 'Une erreur est survenue lors de l\'envoi de votre candidature. Veuillez réessayer.'
       });
     } finally {
       setSubmitting(false);
@@ -261,9 +260,9 @@ export default function BecomePainterPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50">
         <div className="text-center">
-          <Loader className="w-16 h-16 text-purple-600 animate-spin mx-auto mb-4" />
+          <Loader className="w-12 h-12 text-purple-600 animate-spin mx-auto mb-4" />
           <p className="text-gray-600">Chargement...</p>
         </div>
       </div>
@@ -271,56 +270,62 @@ export default function BecomePainterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-purple-100">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard">
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition">
-                <ArrowLeft className="w-5 h-5 text-gray-600" />
-              </button>
-            </Link>
-            <h1 className="text-2xl font-bold text-gray-800">Devenir Formateur</h1>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
+      {/* ✅ Nouveau Header réutilisable */}
+      <Header user={user} />
 
       <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="mb-6">
+          <Link href="/dashboard" className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-700 font-medium">
+            <ArrowLeft className="w-4 h-4" />
+            Retour au tableau de bord
+          </Link>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Devenir formateur</h1>
+          <p className="text-gray-600">
+            Partagez votre passion pour la peinture de figurines et rejoignez notre communauté de formateurs !
+          </p>
+        </div>
+
         {message && (
-          <div className={`mb-6 p-4 rounded-lg flex items-start gap-3 ${
+          <div className={`rounded-xl p-4 mb-6 flex items-start gap-3 ${
             message.type === 'error' 
-              ? 'bg-red-50 text-red-700 border border-red-200' 
-              : 'bg-green-50 text-green-700 border border-green-200'
+              ? 'bg-red-50 border border-red-200' 
+              : 'bg-green-50 border border-green-200'
           }`}>
             {message.type === 'error' ? (
-              <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
             ) : (
-              <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
             )}
-            <span>{message.text}</span>
+            <p className={message.type === 'error' ? 'text-red-700' : 'text-green-700'}>
+              {message.text}
+            </p>
           </div>
         )}
 
         {alreadyPainter ? (
-          <div className="bg-white rounded-xl shadow-md p-12 text-center">
-            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Candidature envoyée !</h2>
+          <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+            <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Candidature enregistrée</h2>
             <p className="text-gray-600 mb-6">
-              Notre équipe examine votre profil et vous contactera sous 48h.
+              {message?.type === 'success' 
+                ? 'Vous êtes déjà inscrit en tant que formateur !' 
+                : 'Votre candidature est en cours de validation.'}
             </p>
             <Link href="/dashboard">
               <button className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition">
-                Retour au profil
+                Retour au tableau de bord
               </button>
             </Link>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Informations de base */}
+            {/* Informations personnelles */}
             <div className="bg-white rounded-xl shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">Informations de base</h2>
-              
+              <h2 className="text-xl font-bold text-gray-800 mb-4">Informations personnelles</h2>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">

@@ -6,6 +6,8 @@ import { Shield, CheckCircle, XCircle, AlertCircle, MapPin } from 'lucide-react'
 import Link from 'next/link';
 import Image from 'next/image';
 import { notifyPainterApproved, notifyPainterRejected } from '@/lib/notifications';
+import Header from '@/components/Header'; // ✅ Import ajouté
+import type { User } from '@supabase/supabase-js'; // ✅ Import ajouté
 
 interface Painter {
   id: string;
@@ -28,6 +30,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [rejectionReason, setRejectionReason] = useState('');
   const [selectedPainter, setSelectedPainter] = useState<Painter | null>(null);
+  const [user, setUser] = useState<User | null>(null); // ✅ State ajouté
 
   const fetchAllPainters = async () => {
     try {
@@ -73,6 +76,8 @@ export default function AdminPage() {
       window.location.href = '/';
       return;
     }
+
+    setUser(user); // ✅ Ajouté pour mettre à jour le state
 
     // Vérifier si l'utilisateur est admin (optionnel)
     const { data: roles } = await supabase
@@ -178,7 +183,11 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-gradient-to-r from-purple-900 to-indigo-900 text-white shadow-lg">
+      {/* ✅ Nouveau Header réutilisable - remplace l'ancien header personnalisé */}
+      <Header user={user} />
+
+      {/* ⚠️ Header admin spécifique - conservé car il contient des infos spécifiques à l'admin */}
+      <div className="bg-gradient-to-r from-purple-900 to-indigo-900 text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -195,46 +204,49 @@ export default function AdminPage() {
             </Link>
           </div>
         </div>
-      </header>
+      </div>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-md p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-500 text-sm mb-1">En attente</p>
+                <p className="text-gray-500 text-sm">En attente</p>
                 <p className="text-3xl font-bold text-orange-600">{pendingPainters.length}</p>
               </div>
-              <AlertCircle className="w-12 h-12 text-orange-600 opacity-20" />
+              <AlertCircle className="w-12 h-12 text-orange-600" />
             </div>
           </div>
+
           <div className="bg-white rounded-xl shadow-md p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-500 text-sm mb-1">Approuvées</p>
+                <p className="text-gray-500 text-sm">Approuvées</p>
                 <p className="text-3xl font-bold text-green-600">{approvedPainters.length}</p>
               </div>
-              <CheckCircle className="w-12 h-12 text-green-600 opacity-20" />
+              <CheckCircle className="w-12 h-12 text-green-600" />
             </div>
           </div>
+
           <div className="bg-white rounded-xl shadow-md p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-500 text-sm mb-1">Rejetées</p>
+                <p className="text-gray-500 text-sm">Rejetées</p>
                 <p className="text-3xl font-bold text-red-600">{rejectedPainters.length}</p>
               </div>
-              <XCircle className="w-12 h-12 text-red-600 opacity-20" />
+              <XCircle className="w-12 h-12 text-red-600" />
             </div>
           </div>
         </div>
 
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Annonces en attente de modération</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">
+            Annonces en attente de validation ({pendingPainters.length})
+          </h2>
           {pendingPainters.length === 0 ? (
-            <div className="bg-white rounded-xl shadow-md p-12 text-center">
-              <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">Tout est à jour !</h3>
-              <p className="text-gray-500">Aucune annonce en attente de modération</p>
+            <div className="bg-white rounded-xl shadow-md p-8 text-center">
+              <CheckCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500">Aucune annonce en attente de validation</p>
             </div>
           ) : (
             <div className="space-y-4">

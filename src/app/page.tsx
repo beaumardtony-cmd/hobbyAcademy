@@ -2,15 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Search, MapPin, Filter, User as UserIcon, BookOpen, Palette, MessageCircle, Star, Image as ImageIcon } from 'lucide-react';
+import { Search, MapPin, Filter, BookOpen, Palette, MessageCircle, Star } from 'lucide-react';
 import Link from 'next/link';
 import AuthModal from '@/components/AuthModal';
-import UserMenu from '@/components/UserMenu';
 import ForgotPasswordModal from '@/components/ForgotPasswordModal';
 import type { User } from '@supabase/supabase-js';
 import Image from 'next/image';
-import NotificationBadge from '@/components/NotificationBadge';
 import AvailabilityDisplay from '@/components/AvailabilityDisplay';
+import Header from '@/components/Header';
 
 interface Painter {
   id: string;
@@ -78,12 +77,11 @@ export default function Home() {
             .select('level')
             .eq('painter_id', painter.id);
 
-          // Récupérer les statistiques d'avis
           const { data: ratingsData } = await supabase
-  .from('painter_ratings')
-  .select('average_rating, review_count')
-  .eq('painter_id', painter.id)
-  .maybeSingle();
+            .from('painter_ratings')
+            .select('average_rating, review_count')
+            .eq('painter_id', painter.id)
+            .maybeSingle();
 
           return {
             ...painter,
@@ -120,7 +118,6 @@ export default function Home() {
       return;
     }
 
-    // Créer ou récupérer la conversation
     try {
       const { data: existingConv } = await supabase
         .from('conversations')
@@ -171,90 +168,45 @@ export default function Home() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <Palette className="w-16 h-16 text-purple-600 animate-pulse mx-auto mb-4" />
-          <p className="text-gray-600">Chargement des formateurs...</p>
+          <Palette className="w-16 h-16 text-slate-400 animate-pulse mx-auto mb-4" />
+          <p className="text-slate-500">Chargement des formateurs...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200/50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-purple-100">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2">
-              <Palette className="w-8 h-8 text-purple-600" />
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                PaintMini Academy
-              </h1>
-            </Link>
-            <div className="flex items-center gap-3">
-              {user ? (
-                <>
-                  <NotificationBadge user={user} />
-                  <Link href="/gallery">
-                    <button className="relative p-2 hover:bg-gray-100 rounded-lg transition" title="Galerie">
-                      <ImageIcon className="w-6 h-6 text-gray-700" />
-                    </button>
-                  </Link>
-                  <Link href="/messages">
-                    <button className="relative p-2 hover:bg-gray-100 rounded-lg transition" title="Messages">
-                      <MessageCircle className="w-6 h-6 text-gray-700" />
-                    </button>
-                  </Link>
-                  <UserMenu user={user} />
-                </>
-              ) : (
-                <>
-                  <Link href="/gallery">
-                    <button className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-purple-600 transition font-medium">
-                      <ImageIcon className="w-4 h-4" />
-                      Galerie
-                    </button>
-                  </Link>
-                  <button 
-                    onClick={() => openAuthModal('login')}
-                    className="px-4 py-2 text-gray-700 hover:text-purple-600 transition font-medium"
-                  >
-                    Se connecter
-                  </button>
-                  <button 
-                    onClick={() => openAuthModal('signup')}
-                    className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition"
-                  >
-                    <UserIcon className="w-4 h-4" />
-                    S&apos;inscrire
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header 
+        user={user}
+        onLoginClick={() => openAuthModal('login')}
+        onSignupClick={() => openAuthModal('signup')}
+        showAuthButtons={true}
+      />
 
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4">
+      <div className="bg-gradient-to-r from-slate-500 via-slate-600 to-slate-700 text-white py-12 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-400/20 to-transparent"></div>
+        <div className="max-w-7xl mx-auto px-4 relative">
           <h2 className="text-4xl font-bold mb-3">Apprenez la peinture de figurines</h2>
-          <p className="text-lg text-purple-100 mb-8">Trouvez le formateur parfait près de chez vous</p>
+          <p className="text-lg text-slate-100 mb-8">Trouvez le formateur parfait près de chez vous</p>
           
           {/* Search Bar */}
           <div className="bg-white rounded-lg shadow-lg p-2 flex flex-col md:flex-row gap-2">
             <div className="flex-1 flex items-center gap-2 px-3">
-              <Search className="w-5 h-5 text-gray-400" />
+              <Search className="w-5 h-5 text-slate-400" />
               <input
                 type="text"
                 placeholder="Rechercher un formateur, style ou ville..."
-                className="flex-1 outline-none text-gray-800 py-2"
+                className="flex-1 outline-none text-slate-700 py-2 focus:ring-0"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             <button 
               onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition"
+              className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 hover:text-slate-400 transition-all"
             >
               <Filter className="w-4 h-4" />
               Filtres
@@ -300,57 +252,63 @@ export default function Home() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-6">
-          <h3 className="text-2xl font-bold text-gray-800 mb-2">
+          <h3 className="text-2xl font-bold text-slate-700 mb-2">
             {filteredPainters.length} formateur{filteredPainters.length > 1 ? 's' : ''} disponible{filteredPainters.length > 1 ? 's' : ''}
           </h3>
-          <p className="text-gray-600">Choisissez votre professeur idéal pour commencer votre apprentissage</p>
+          <p className="text-slate-500">Choisissez votre professeur idéal pour commencer votre apprentissage</p>
         </div>
 
         {/* Painters Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredPainters.map(painter => (
-            <div key={painter.id} className="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow overflow-hidden">
+            <div key={painter.id} className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all overflow-hidden border border-slate-200/60 hover:border-slate-300 group">
               <div className="p-6">
                 <Link href={`/painter/${painter.id}/profile`}>
                   <div className="cursor-pointer">
                     <div className="flex items-start gap-4 mb-4">
-                      <Image 
-                        src={painter.profile_image_url} 
-                        alt={painter.name}
-                        width={64}
-                        height={64}
-                        className="rounded-full bg-purple-100"
-                      />
+                      <div className="relative">
+                        <Image 
+                          src={painter.profile_image_url} 
+                          alt={painter.name}
+                          width={64}
+                          height={64}
+                          className="rounded-full bg-slate-100 ring-2 ring-slate-200 group-hover:ring-slate-300 transition-all"
+                        />
+                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-slate-400 rounded-full border-2 border-white opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      </div>
                       <div className="flex-1">
-                        <h4 className="font-bold text-lg text-gray-800 mb-1">{painter.name}</h4>
-                        <div className="flex items-center gap-1 text-sm text-gray-600 mb-2">
+                        <h4 className="font-bold text-lg text-slate-800 mb-1 group-hover:text-slate-600 transition">{painter.name}</h4>
+                        <div className="flex items-center gap-1 text-sm text-slate-500 mb-2">
                           <MapPin className="w-4 h-4" />
                           <span>{painter.location}</span>
                         </div>
                         {painter.review_count && painter.review_count > 0 ? (
                           <div className="flex items-center gap-1">
-                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                            <span className="font-semibold text-gray-800">{painter.average_rating}</span>
-                            <span className="text-gray-500 text-sm">({painter.review_count} avis)</span>
+                            <Star className="w-4 h-4 fill-slate-400 text-slate-400" />
+                            <span className="font-semibold text-slate-700">{painter.average_rating?.toFixed(1)}</span>
+                            <span className="text-slate-400 text-sm">({painter.review_count} avis)</span>
                           </div>
                         ) : (
-                          <span className="text-sm text-gray-500">Aucun avis</span>
+                          <div className="flex items-center gap-1">
+                            <Star className="w-4 h-4 text-slate-300" />
+                            <span className="text-sm text-slate-400">Aucun avis</span>
+                          </div>
                         )}
                       </div>
                     </div>
 
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">{painter.bio}</p>
+                    <p className="text-slate-500 text-sm mb-4 line-clamp-2">{painter.bio}</p>
 
                     <div className="flex flex-wrap gap-2 mb-4">
                       {painter.styles.map(style => (
-                        <span key={style} className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                        <span key={style} className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-medium group-hover:bg-slate-200 group-hover:text-slate-500 transition">
                           {style}
                         </span>
                       ))}
                     </div>
 
-                    <div className="mb-4 pb-4 border-b border-gray-200">
-                      <div className="flex items-center gap-1 text-sm text-gray-600 mb-3">
+                    <div className="mb-4 pb-4 border-b border-slate-100">
+                      <div className="flex items-center gap-1 text-sm text-slate-500 mb-3">
                         <BookOpen className="w-4 h-4" />
                         <span>{painter.levels.join(', ')}</span>
                       </div>
@@ -363,20 +321,13 @@ export default function Home() {
                   </div>
                 </Link>
 
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-600">
-                    {painter.review_count && painter.review_count > 0 && (
-                      <span className="text-purple-600 font-medium">
-                        {painter.review_count} avis
-                      </span>
-                    )}
-                  </div>
+                <div className="flex items-center justify-end">
                   <button 
                     onClick={(e) => {
                       e.preventDefault();
                       handleContactPainter(painter);
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition font-medium"
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-slate-500 to-slate-700 text-white rounded-lg hover:from-slate-300 hover:to-slate-500 transition-all font-medium shadow-sm hover:shadow-md"
                   >
                     <MessageCircle className="w-4 h-4" />
                     Contacter
@@ -389,9 +340,9 @@ export default function Home() {
 
         {filteredPainters.length === 0 && (
           <div className="text-center py-12">
-            <Palette className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">Aucun formateur trouvé</h3>
-            <p className="text-gray-500">Essayez de modifier vos critères de recherche</p>
+            <Palette className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-slate-600 mb-2">Aucun formateur trouvé</h3>
+            <p className="text-slate-400">Essayez de modifier vos critères de recherche</p>
           </div>
         )}
       </div>

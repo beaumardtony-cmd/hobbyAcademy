@@ -11,6 +11,7 @@ import StarRating from '@/components/StarRating';
 import ReviewModal from '@/components/ReviewModal';
 import { notifyNewFavorite } from '@/lib/notifications';
 import AvailabilityDisplay from '@/components/AvailabilityDisplay';
+import Header from '@/components/Header'; // ✅ Import ajouté
 
 interface PainterProfile {
   id: string;
@@ -261,11 +262,11 @@ export default function PainterProfilePage() {
           });
 
         if (error) throw error;
-		// Créer une notification pour le formateur
-await notifyNewFavorite({
-  painterId: painterId,
-  studentName: user.user_metadata?.full_name || user.email || 'Un utilisateur',
-});
+        // Créer une notification pour le formateur
+        await notifyNewFavorite({
+          painterId: painterId,
+          studentName: user.user_metadata?.full_name || user.email || 'Un utilisateur',
+        });
         setIsFavorite(true);
         setFavoritesCount(prev => prev + 1);
       }
@@ -289,20 +290,9 @@ await notifyNewFavorite({
   if (!painter) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-purple-100">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Link href="/">
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition">
-                <ArrowLeft className="w-5 h-5 text-gray-600" />
-              </button>
-            </Link>
-            <h1 className="text-2xl font-bold text-gray-800">Profil du formateur</h1>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200/50">
+      {/* ✅ Nouveau Header réutilisable */}
+      <Header user={user} />
 
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Hero Card */}
@@ -445,7 +435,7 @@ await notifyNewFavorite({
                     <div key={review.id} className="border-b border-gray-100 last:border-0 pb-4 last:pb-0">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center text-white text-sm font-semibold">
+                          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 text-sm font-semibold border border-gray-300">
                             {review.student_name[0].toUpperCase()}
                           </div>
                           <span className="font-medium text-gray-800">{review.student_name}</span>
@@ -475,7 +465,7 @@ await notifyNewFavorite({
             <div className="bg-white rounded-xl shadow-md p-6">
               <h3 className="text-lg font-bold text-gray-800 mb-4">Informations</h3>
               <div className="space-y-4">
-                {/* CHANGEMENT ICI : Utilisation du composant AvailabilityDisplay */}
+                {/* Utilisation du composant AvailabilityDisplay */}
                 <AvailabilityDisplay availability={painter.availability} />
                 
                 <div>
@@ -489,22 +479,18 @@ await notifyNewFavorite({
                   </div>
                 </div>
 
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-2">Tarifs</p>
-                  <p className="text-gray-800">À discuter ensemble</p>
-                </div>
               </div>
             </div>
 
             {/* Contact rapide */}
-            <div className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl shadow-md p-6 text-white">
+            <div className="bg-gradient-to-br from-slate-500 to-slate-700 rounded-xl shadow-md p-6 text-white">
               <h3 className="text-lg font-bold mb-3">Prêt à commencer ?</h3>
-              <p className="text-purple-100 text-sm mb-4">
+              <p className="text-white text-sm mb-4">
                 Contactez {painter.name.split(' ')[0]} pour discuter de vos objectifs et planifier votre premier cours !
               </p>
               <button
                 onClick={handleContactPainter}
-                className="w-full px-4 py-3 bg-white text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition"
+                className="w-full px-4 py-3 bg-white text-slate-700 rounded-lg font-semibold hover:bg-slate-50 transition"
               >
                 Envoyer un message
               </button>

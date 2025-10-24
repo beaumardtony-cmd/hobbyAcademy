@@ -4,11 +4,12 @@
 1. [Vue d'ensemble](#vue-densemble)
 2. [Architecture technique](#architecture-technique)
 3. [Structure du projet](#structure-du-projet)
-4. [Fonctionnalités par module](#fonctionnalités-par-module)
-5. [Base de données](#base-de-données)
-6. [Design System](#design-system)
-7. [Authentification](#authentification)
-8. [Routes et navigation](#routes-et-navigation)
+4. [Composants réutilisables](#composants-réutilisables)
+5. [Fonctionnalités par module](#fonctionnalités-par-module)
+6. [Base de données](#base-de-données)
+7. [Design System](#design-system)
+8. [Authentification](#authentification)
+9. [Routes et navigation](#routes-et-navigation)
 
 ---
 
@@ -93,6 +94,7 @@ hobbyAcademy/
 │   │   ├── AvailabilityDisplay.tsx
 │   │   ├── FileUpload.tsx
 │   │   ├── ForgotPasswordModal.tsx
+│   │   ├── Header.tsx      # ⭐ Header réutilisable
 │   │   ├── NotificationBadge.tsx
 │   │   ├── ReviewModal.tsx
 │   │   ├── StarRating.tsx
@@ -110,6 +112,262 @@ hobbyAcademy/
 ├── README.md
 ├── tsconfig.json
 └── tailwind.config.ts (implicite)
+```
+
+---
+
+## 🧩 Composants réutilisables
+
+### Header Component ⭐
+
+Le composant `Header` est un composant réutilisable qui assure une navigation cohérente sur toutes les pages du site.
+
+#### 📁 Emplacement
+```
+src/components/Header.tsx
+```
+
+#### 🎯 Avantages
+
+✅ **Code réutilisable** : Le header est défini une seule fois  
+✅ **Maintenance facile** : Une modification s'applique partout  
+✅ **Cohérence** : Design identique sur toutes les pages  
+✅ **Flexibilité** : Props pour personnaliser selon le contexte  
+
+#### 📝 Code du composant
+
+```tsx
+import Link from 'next/link';
+import { Palette, User as UserIcon } from 'lucide-react';
+import type { User } from '@supabase/supabase-js';
+import UserMenu from '@/components/UserMenu';
+import NotificationBadge from '@/components/NotificationBadge';
+
+interface HeaderProps {
+  user?: User | null;
+  onLoginClick?: () => void;
+  onSignupClick?: () => void;
+  showAuthButtons?: boolean;
+}
+
+export default function Header({ 
+  user, 
+  onLoginClick, 
+  onSignupClick, 
+  showAuthButtons = true 
+}: HeaderProps) {
+  return (
+    <header className="bg-white/95 backdrop-blur-sm shadow-sm border-b border-slate-200/60 sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="w-10 h-10 bg-gradient-to-br from-slate-400 to-slate-600 rounded-lg flex items-center justify-center group-hover:from-slate-500 group-hover:to-slate-700 transition-all duration-300">
+              <Palette className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-600 to-slate-800 bg-clip-text text-transparent">
+              Hobby Academy
+            </h1>
+          </Link>
+          <div className="flex items-center gap-3">
+            {user ? (
+              <>
+                <NotificationBadge user={user} />
+                <UserMenu user={user} />
+              </>
+            ) : showAuthButtons ? (
+              <>
+                <button 
+                  onClick={onLoginClick}
+                  className="flex items-center gap-2 text-slate-600 hover:text-slate-800 px-4 py-2 rounded-lg hover:bg-slate-100 transition-all"
+                >
+                  <UserIcon className="w-4 h-4" />
+                  Se connecter
+                </button>
+                <button 
+                  onClick={onSignupClick}
+                  className="flex items-center gap-2 bg-gradient-to-r from-slate-500 to-slate-700 text-white px-4 py-2 rounded-lg hover:from-slate-300 hover:to-slate-500 transition-all shadow-sm hover:shadow-md"
+                >
+                  <UserIcon className="w-4 h-4" />
+                  S&apos;inscrire
+                </button>
+              </>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}
+```
+
+#### 📚 Utilisation
+
+##### Cas 1 : Page avec utilisateur connecté (Dashboard, profils, etc.)
+
+```tsx
+import Header from '@/components/Header';
+
+export default function DashboardPage() {
+  const [user, setUser] = useState(null);
+
+  // ... logique de récupération de l'utilisateur
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200/50">
+      <Header user={user} />
+      
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Contenu de la page */}
+      </div>
+    </div>
+  );
+}
+```
+
+##### Cas 2 : Page d'accueil avec boutons de connexion/inscription
+
+```tsx
+import Header from '@/components/Header';
+
+export default function Home() {
+  const [user, setUser] = useState(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState('login');
+
+  const openAuthModal = (mode: 'login' | 'signup') => {
+    setAuthMode(mode);
+    setAuthModalOpen(true);
+  };
+
+  return (
+    <div className="min-h-screen">
+      <Header 
+        user={user}
+        onLoginClick={() => openAuthModal('login')}
+        onSignupClick={() => openAuthModal('signup')}
+        showAuthButtons={true}
+      />
+      
+      {/* Reste de la page */}
+    </div>
+  );
+}
+```
+
+##### Cas 3 : Page simple sans boutons d'authentification
+
+```tsx
+<Header 
+  user={user}
+  showAuthButtons={false}
+/>
+```
+
+#### 🔧 Props du composant
+
+| Prop | Type | Défaut | Description |
+|------|------|--------|-------------|
+| `user` | `User \| null \| undefined` | - | Objet utilisateur Supabase (de `getUser()`) |
+| `onLoginClick` | `() => void` | - | Callback appelé lors du clic sur "Se connecter" |
+| `onSignupClick` | `() => void` | - | Callback appelé lors du clic sur "S'inscrire" |
+| `showAuthButtons` | `boolean` | `true` | Afficher ou masquer les boutons de connexion/inscription |
+
+#### 📦 Dépendances
+
+Le composant Header nécessite les composants suivants :
+- **`UserMenu`** : Menu déroulant de l'utilisateur connecté (profil, paramètres, déconnexion)
+- **`NotificationBadge`** : Badge de notifications avec compteur
+- **`Lucide React`** : Pour les icônes (Palette, UserIcon)
+- **`@supabase/supabase-js`** : Pour le type User
+
+#### 🎨 Personnalisation
+
+##### Changer le logo
+
+Modifiez la section logo dans le composant :
+
+```tsx
+<div className="w-10 h-10 bg-gradient-to-br from-slate-400 to-slate-600 rounded-lg">
+  <YourIcon className="w-5 h-5 text-white" />
+</div>
+```
+
+##### Changer le nom de l'application
+
+```tsx
+<h1 className="text-2xl font-bold bg-gradient-to-r from-slate-600 to-slate-800 bg-clip-text text-transparent">
+  Votre Nom d'App  {/* Modifier ici */}
+</h1>
+```
+
+##### Modifier le thème de couleur
+
+Remplacez les classes Tailwind par vos couleurs :
+```tsx
+// Exemple : passer du thème slate à blue
+from-slate-400 to-slate-600  →  from-blue-400 to-blue-600
+border-slate-200/60          →  border-blue-200/60
+text-slate-600               →  text-blue-600
+```
+
+#### 🚀 Migration des pages existantes
+
+Pour migrer vos pages qui ont un header codé en dur :
+
+**Avant** (100+ lignes dupliquées) :
+```tsx
+<header className="bg-white/95 backdrop-blur-sm shadow-sm ...">
+  <div className="max-w-7xl mx-auto px-4 py-4">
+    <div className="flex items-center justify-between">
+      {/* ... 50+ lignes de JSX ... */}
+    </div>
+  </div>
+</header>
+```
+
+**Après** (1 ligne) :
+```tsx
+<Header user={user} />
+```
+
+**Étapes** :
+1. Supprimer tout le code du `<header>...</header>`
+2. Importer le composant : `import Header from '@/components/Header';`
+3. Remplacer par : `<Header user={user} />`
+4. Ajouter les props nécessaires selon le contexte
+
+#### ✅ Checklist d'implémentation
+
+- [ ] Créer `src/components/Header.tsx`
+- [ ] Vérifier que `UserMenu.tsx` existe
+- [ ] Vérifier que `NotificationBadge.tsx` existe
+- [ ] Remplacer le header dans `app/page.tsx` (accueil)
+- [ ] Remplacer le header dans `app/dashboard/page.tsx`
+- [ ] Remplacer le header dans `app/painter/[id]/page.tsx`
+- [ ] Remplacer le header dans toutes les autres pages
+- [ ] Tester l'affichage avec utilisateur connecté
+- [ ] Tester l'affichage sans utilisateur
+- [ ] Tester la responsivité mobile
+- [ ] Vérifier le comportement des boutons
+
+#### 🐛 Résolution de problèmes courants
+
+**Problème** : Le header ne s'affiche pas  
+**Solution** : Vérifier que le fichier est bien dans `src/components/` et que l'import est correct
+
+**Problème** : Erreur TypeScript sur le type User  
+**Solution** : Importer le type : `import type { User } from '@supabase/supabase-js';`
+
+**Problème** : Les composants UserMenu ou NotificationBadge sont introuvables  
+**Solution** : Créer ces composants ou ajuster les imports dans Header.tsx
+
+**Problème** : Les boutons de connexion ne fonctionnent pas  
+**Solution** : Vérifier que les callbacks sont bien passés en props :
+```tsx
+<Header 
+  onLoginClick={() => openAuthModal('login')}
+  onSignupClick={() => openAuthModal('signup')}
+/>
 ```
 
 ---
@@ -139,6 +397,7 @@ hobbyAcademy/
 - ✅ Loading state avec animation
 
 **Composants utilisés** :
+- `Header` ⭐ (nouveau)
 - `AuthModal`
 - `UserMenu`
 - `NotificationBadge`
@@ -152,6 +411,7 @@ hobbyAcademy/
 - `/reset-password` - Réinitialisation MDP
 
 **Composants** :
+- `Header` ⭐ - Navigation principale
 - `AuthModal.tsx` - Connexion/Inscription
 - `ForgotPasswordModal.tsx` - Récupération MDP
 
@@ -166,7 +426,7 @@ hobbyAcademy/
 - ✅ Messages d'erreur explicites
 
 **Flow utilisateur** :
-1. Clic sur "Se connecter" ou "S'inscrire"
+1. Clic sur "Se connecter" ou "S'inscrire" (dans Header)
 2. Modale d'authentification s'ouvre
 3. Saisie des informations
 4. Validation et création de session
@@ -181,6 +441,7 @@ hobbyAcademy/
 - `/notifications` - Centre de notifications
 
 **Composants** :
+- `Header` ⭐ - Navigation principale
 - `UserMenu.tsx` - Menu dropdown utilisateur
 - `NotificationBadge.tsx` - Badge notifications
 
@@ -211,6 +472,7 @@ hobbyAcademy/
 - `/dashboard` - Dashboard formateur
 
 **Composants** :
+- `Header` ⭐ - Navigation principale
 - `AvailabilityDisplay.tsx`
 - `StarRating.tsx`
 - `ReviewModal.tsx`
@@ -251,6 +513,9 @@ hobbyAcademy/
 - `/messages` - Liste des conversations
 - `/messages/[id]` - Conversation spécifique
 
+**Composants** :
+- `Header` ⭐ - Navigation principale
+
 **Fonctionnalités** :
 - ✅ Liste de toutes les conversations
 - ✅ Création automatique de conversation au premier contact
@@ -276,6 +541,7 @@ hobbyAcademy/
 **Route** : `/gallery`
 
 **Composants** :
+- `Header` ⭐ - Navigation principale
 - `FileUpload.tsx`
 
 **Fonctionnalités** :
@@ -293,6 +559,9 @@ hobbyAcademy/
 
 ### ⚙️ Module : Administration
 **Route** : `/admin`
+
+**Composants** :
+- `Header` ⭐ - Navigation principale
 
 **Fonctionnalités** :
 - ✅ Validation des candidatures formateurs
@@ -467,6 +736,14 @@ Extension du système auth de Supabase
 - created_at (timestamp)
 ```
 
+#### Table : `profile_views` (pour le dashboard formateur)
+```sql
+- id (uuid, PK)
+- painter_id (uuid, FK → painters.id)
+- viewer_id (uuid, FK → users.id, nullable)
+- viewed_at (timestamp)
+```
+
 ### Policies RLS (Row Level Security)
 
 Exemples de policies Supabase :
@@ -483,3 +760,299 @@ USING (auth.uid() = user_id);
 -- Messages : lecture uniquement pour participants
 CREATE POLICY "Users can view own messages"
 ON messages FOR SELECT
+USING (
+  auth.uid() IN (
+    SELECT sender_id FROM conversations WHERE id = conversation_id
+    UNION
+    SELECT painter_id FROM conversations WHERE id = conversation_id
+    UNION
+    SELECT student_id FROM conversations WHERE id = conversation_id
+  )
+);
+
+-- Reviews : lecture publique, création par élèves uniquement
+CREATE POLICY "Reviews are viewable by everyone"
+ON reviews FOR SELECT
+USING (true);
+
+CREATE POLICY "Students can create reviews"
+ON reviews FOR INSERT
+WITH CHECK (auth.uid() = student_id);
+
+-- Favorites : accès limité au propriétaire
+CREATE POLICY "Users can manage own favorites"
+ON favorites FOR ALL
+USING (auth.uid() = user_id);
+```
+
+---
+
+## 🎨 Design System
+
+### Palette de couleurs
+
+**Thème principal : Slate (nuances de gris)**
+```
+Primaire :
+- slate-50  : #f8fafc (backgrounds clairs)
+- slate-100 : #f1f5f9 (backgrounds)
+- slate-200 : #e2e8f0 (borders)
+- slate-300 : #cbd5e1 (borders hover)
+- slate-400 : #94a3b8 (icônes, texte secondaire)
+- slate-500 : #64748b (boutons, liens)
+- slate-600 : #475569 (texte principal)
+- slate-700 : #334155 (titres)
+- slate-800 : #1e293b (texte important)
+- slate-900 : #0f172a (très foncé)
+
+Accents :
+- blue-500  : #3b82f6 (notifications, actions)
+- green-500 : #22c55e (succès)
+- red-500   : #ef4444 (erreurs, favoris)
+- yellow-500: #eab308 (étoiles, avertissements)
+- purple-500: #a855f7 (messagerie)
+```
+
+### Composants de design
+
+**Cartes** :
+```css
+bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition
+border border-slate-200/60 hover:border-slate-300
+```
+
+**Boutons primaires** :
+```css
+bg-gradient-to-r from-slate-500 to-slate-700 text-white 
+px-4 py-2 rounded-lg hover:from-slate-300 hover:to-slate-500 
+transition-all shadow-sm hover:shadow-md
+```
+
+**Boutons secondaires** :
+```css
+text-slate-600 hover:text-slate-800 px-4 py-2 rounded-lg 
+hover:bg-slate-100 transition-all
+```
+
+**Badges** :
+```css
+px-3 py-1 bg-slate-100 text-slate-600 rounded-full 
+text-xs font-medium
+```
+
+### Typography
+
+```css
+Titres H1 : text-4xl font-bold text-slate-800
+Titres H2 : text-3xl font-bold text-slate-800
+Titres H3 : text-2xl font-bold text-slate-800
+Titres H4 : text-xl font-bold text-slate-800
+Corps : text-base text-slate-600
+Petit : text-sm text-slate-500
+Très petit : text-xs text-slate-400
+```
+
+### Responsivité
+
+**Breakpoints Tailwind** :
+- `sm` : 640px
+- `md` : 768px
+- `lg` : 1024px
+- `xl` : 1280px
+- `2xl` : 1536px
+
+**Grilles responsive** :
+```css
+grid md:grid-cols-2 lg:grid-cols-3 gap-6
+```
+
+---
+
+## 🔐 Authentification
+
+### Flow d'authentification
+
+1. **Inscription** :
+   - Email + mot de passe
+   - Envoi d'un email de confirmation
+   - Redirection vers page de confirmation
+
+2. **Connexion** :
+   - Email + mot de passe
+   - Vérification des credentials
+   - Création de session JWT
+   - Redirection vers dashboard ou page précédente
+
+3. **OAuth** :
+   - Clic sur bouton OAuth (Google, GitHub, etc.)
+   - Redirection vers provider
+   - Callback vers `/auth/callback`
+   - Création/mise à jour du profil
+   - Redirection
+
+4. **Mot de passe oublié** :
+   - Saisie de l'email
+   - Envoi d'un email avec lien unique
+   - Redirection vers `/reset-password?token=...`
+   - Saisie nouveau mot de passe
+   - Confirmation et connexion automatique
+
+### Protection des routes
+
+**Middleware Next.js** (`middleware.ts`) :
+```typescript
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  
+  // Routes protégées
+  const protectedRoutes = ['/dashboard', '/settings', '/messages'];
+  const adminRoutes = ['/admin'];
+  
+  // Vérifier session
+  const session = await getSession();
+  
+  if (!session && protectedRoutes.some(route => pathname.startsWith(route))) {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+  
+  if (adminRoutes.some(route => pathname.startsWith(route))) {
+    const user = await getUser();
+    if (user.role !== 'admin') {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+  }
+  
+  return NextResponse.next();
+}
+```
+
+### Sessions
+
+- **Durée** : 7 jours par défaut
+- **Refresh** : Automatique si token valide
+- **Storage** : Cookie httpOnly + localStorage (pour état client)
+
+---
+
+## 🧭 Routes et navigation
+
+### Routes publiques
+```
+/                           # Page d'accueil (liste formateurs)
+/painter/[id]              # Profil public formateur
+/painter/[id]/profile      # Vue détaillée formateur
+/gallery                   # Galerie publique
+/auth/callback             # Callback OAuth
+/reset-password            # Réinitialisation MDP
+```
+
+### Routes protégées (authentification requise)
+```
+/dashboard                 # Dashboard utilisateur
+/messages                  # Liste conversations
+/messages/[id]             # Conversation spécifique
+/favorites                 # Formateurs favoris
+/settings                  # Paramètres compte
+/notifications             # Centre notifications
+/become-painter            # Candidature formateur
+/painter/[id]/reviews      # Avis (si formateur)
+```
+
+### Routes admin
+```
+/admin                     # Panel administration
+/admin/painters            # Validation formateurs
+/admin/users               # Gestion utilisateurs
+/admin/reports             # Signalements
+```
+
+### Navigation dans le Header
+
+Le composant `Header` est présent sur toutes les pages et permet :
+- **Logo** : Retour à la page d'accueil (/)
+- **Notifications** : Accès au centre de notifications (/notifications)
+- **Menu utilisateur** :
+  - Dashboard (/dashboard)
+  - Messages (/messages)
+  - Favoris (/favorites)
+  - Paramètres (/settings)
+  - Déconnexion
+
+---
+
+## 📝 Notes de développement
+
+### Bonnes pratiques
+
+1. **Composants** :
+   - Toujours utiliser le composant `Header` au lieu de coder un header en dur
+   - Privilégier les Server Components quand possible
+   - Client Components uniquement pour interactivité
+
+2. **State management** :
+   - `useState` pour état local
+   - Supabase real-time pour synchronisation
+   - Pas de Redux nécessaire
+
+3. **Styling** :
+   - Respecter la palette slate
+   - Utiliser les classes Tailwind utilitaires
+   - Pas de CSS custom sauf nécessaire
+
+4. **Performance** :
+   - Next/Image pour toutes les images
+   - Lazy loading des composants lourds
+   - Pagination des listes longues
+
+5. **Sécurité** :
+   - Toujours valider côté serveur
+   - Row Level Security (RLS) activée sur toutes les tables
+   - Inputs sanitizés
+
+### Scripts disponibles
+
+```bash
+npm run dev          # Développement (localhost:3000)
+npm run build        # Build production
+npm run start        # Serveur production
+npm run lint         # Linter ESLint
+npm run test         # Tests unitaires
+npm run test:e2e     # Tests E2E Playwright
+```
+
+---
+
+## 🚀 Déploiement
+
+### Vercel (recommandé)
+
+1. Connecter le repository GitHub
+2. Configurer les variables d'environnement :
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+3. Déployer automatiquement à chaque push sur `main`
+
+### Variables d'environnement
+
+```env
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJxxxxxxxxxxxx
+
+# Optionnel
+NEXT_PUBLIC_SITE_URL=https://hobby-academy.vercel.app
+```
+
+---
+
+## 📞 Support et contribution
+
+Pour toute question ou contribution :
+1. Ouvrir une issue sur GitHub
+2. Proposer une Pull Request
+3. Contacter l'équipe de développement
+
+---
+
+**Dernière mise à jour** : Octobre 2024  
+**Version** : 1.0.0

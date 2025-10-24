@@ -9,6 +9,7 @@ import type { User } from '@supabase/supabase-js';
 import type { Review } from '@/types/supabase';
 import StarRating from '@/components/StarRating';
 import ReviewModal from '@/components/ReviewModal';
+import Header from '@/components/Header'; // ✅ Import ajouté
 
 export default function PainterReviewsPage() {
   const params = useParams();
@@ -128,11 +129,14 @@ export default function PainterReviewsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-purple-100">
+      {/* ✅ Nouveau Header réutilisable */}
+      <Header user={user} />
+
+      {/* ✅ Section titre conservée pour le contexte de la page */}
+      <div className="bg-white shadow-sm border-b border-purple-100">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
-            <Link href="/">
+            <Link href={`/painter/${painterId}/profile`}>
               <button className="p-2 hover:bg-gray-100 rounded-lg transition">
                 <ArrowLeft className="w-5 h-5 text-gray-600" />
               </button>
@@ -143,7 +147,7 @@ export default function PainterReviewsPage() {
             </div>
           </div>
         </div>
-      </header>
+      </div>
 
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Summary Card */}

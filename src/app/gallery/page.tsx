@@ -6,6 +6,7 @@ import { ArrowLeft, Heart, MessageCircle, Plus, Loader, Image as ImageIcon } fro
 import Link from 'next/link';
 import Image from 'next/image';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
+import Header from '@/components/Header'; // ✅ Import ajouté
 
 interface GalleryPost {
   id: string;
@@ -179,33 +180,36 @@ export default function GalleryPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <Loader className="w-16 h-16 text-purple-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Chargement de la galerie...</p>
+          <Loader className="w-16 h-16 text-slate-600 animate-spin mx-auto mb-4" />
+          <p className="text-slate-600">Chargement de la galerie...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-purple-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200">
+      {/* ✅ Nouveau Header réutilisable */}
+      <Header user={user} />
+
+      {/* ✅ Section titre conservée pour le contexte de la page */}
+      <div className="bg-white shadow-sm border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link href="/">
-                <button className="p-2 hover:bg-gray-100 rounded-lg transition">
-                  <ArrowLeft className="w-5 h-5 text-gray-600" />
+                <button className="p-2 hover:bg-slate-100 rounded-lg transition">
+                  <ArrowLeft className="w-5 h-5 text-slate-600" />
                 </button>
               </Link>
               <div className="flex items-center gap-2">
-                <ImageIcon className="w-6 h-6 text-purple-600" />
-                <h1 className="text-2xl font-bold text-gray-800">Galerie Communautaire</h1>
+                <ImageIcon className="w-6 h-6 text-slate-600" />
+                <h1 className="text-2xl font-bold text-slate-800">Galerie Communautaire</h1>
               </div>
             </div>
             {user && (
               <Link href="/gallery/new">
-                <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition font-medium">
+                <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-slate-500 to-slate-700 text-white rounded-lg hover:from-slate-300 hover:to-slate-500 transition font-medium">
                   <Plus className="w-5 h-5" />
                   Partager
                 </button>
@@ -213,7 +217,7 @@ export default function GalleryPage() {
             )}
           </div>
         </div>
-      </header>
+      </div>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Filtres */}
@@ -224,8 +228,8 @@ export default function GalleryPage() {
               onClick={() => setSelectedStyle(style === 'Tous' ? 'all' : style)}
               className={`px-4 py-2 rounded-lg font-medium transition ${
                 (style === 'Tous' && selectedStyle === 'all') || selectedStyle === style
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-100'
+                  ? 'bg-slate-600 text-white'
+                  : 'bg-white text-slate-700 hover:bg-slate-100'
               }`}
             >
               {style}
@@ -236,12 +240,12 @@ export default function GalleryPage() {
         {/* Grille de posts */}
         {filteredPosts.length === 0 ? (
           <div className="bg-white rounded-xl shadow-md p-12 text-center">
-            <ImageIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">Aucune réalisation</h3>
-            <p className="text-gray-500 mb-6">Soyez le premier à partager votre création !</p>
+            <ImageIcon className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-slate-700 mb-2">Aucune réalisation</h3>
+            <p className="text-slate-500 mb-6">Soyez le premier à partager votre création !</p>
             {user && (
               <Link href="/gallery/new">
-                <button className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition">
+                <button className="px-6 py-3 bg-gradient-to-r from-slate-500 to-slate-700 text-white rounded-lg font-semibold hover:from-slate-300 hover:to-slate-500 transition">
                   Partager une réalisation
                 </button>
               </Link>
@@ -264,46 +268,44 @@ export default function GalleryPage() {
 
                 <div className="p-4">
                   <Link href={`/gallery/${post.id}`}>
-                    <h3 className="font-bold text-lg text-gray-800 mb-2 hover:text-purple-600 cursor-pointer">
+                    <h3 className="font-bold text-lg text-slate-800 mb-2 hover:text-slate-600 cursor-pointer transition">
                       {post.title}
                     </h3>
                   </Link>
 
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center text-white text-xs font-semibold">
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-r from-slate-500 to-slate-700 flex items-center justify-center text-white text-xs font-semibold">
                       {post.user_name[0].toUpperCase()}
                     </div>
-                    <span className="text-sm text-gray-600">{post.user_name}</span>
+                    <span className="text-sm text-slate-600">{post.user_name}</span>
                   </div>
 
                   {post.painter_name && (
-                    <p className="text-xs text-gray-500 mb-3">
-                      Enseigné par <span className="font-medium text-purple-600">{post.painter_name}</span>
+                    <p className="text-xs text-slate-500 mb-3">
+                      Enseigné par <span className="font-medium text-slate-600">{post.painter_name}</span>
                     </p>
                   )}
 
                   {post.style && (
-                    <span className="inline-block px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium mb-3">
+                    <span className="inline-block px-2 py-1 bg-slate-100 text-slate-700 rounded text-xs font-medium mb-3">
                       {post.style}
                     </span>
                   )}
 
-                  <div className="flex items-center gap-4 pt-3 border-t border-gray-100">
+                  <div className="flex items-center gap-4 pt-3 border-t border-slate-100">
                     <button
                       onClick={(e) => {
                         e.preventDefault();
                         toggleLike(post.id);
                       }}
-                      className="flex items-center gap-1 text-gray-600 hover:text-red-600 transition"
+                      className="flex items-center gap-1 text-slate-500 hover:text-slate-300 transition-colors group"
                     >
-                      <Heart className={`w-5 h-5 ${post.is_liked ? 'fill-red-600 text-red-600' : ''}`} />
-                      <span className="text-sm font-medium">{post.likes_count}</span>
+                      <Heart className={`w-5 h-5 transition-colors ${post.is_liked ? 'fill-slate-400 text-slate-400' : 'group-hover:text-slate-300'}`} />
+                      <span className="text-sm font-medium group-hover:text-slate-300 transition-colors">{post.likes_count}</span>
                     </button>
-                    <Link href={`/gallery/${post.id}`}>
-                      <button className="flex items-center gap-1 text-gray-600 hover:text-blue-600 transition">
-                        <MessageCircle className="w-5 h-5" />
-                        <span className="text-sm font-medium">{post.comments_count}</span>
-                      </button>
+                    <Link href={`/gallery/${post.id}`} className="flex items-center gap-1 text-slate-500 hover:text-slate-300 transition-colors group cursor-pointer">
+                      <MessageCircle className="w-5 h-5 group-hover:text-slate-300 transition-colors" />
+                      <span className="text-sm font-medium group-hover:text-slate-300 transition-colors">{post.comments_count}</span>
                     </Link>
                   </div>
                 </div>

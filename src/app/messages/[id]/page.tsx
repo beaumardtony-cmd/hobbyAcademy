@@ -10,6 +10,7 @@ import type { User } from '@supabase/supabase-js';
 import type { MessageType } from '@/types/supabase';
 import ReviewModal from '@/components/ReviewModal';
 import { notifyNewMessage } from '@/lib/notifications';
+import Header from '@/components/Header'; // ✅ Import ajouté
 
 export default function ConversationPage() {
   const params = useParams();
@@ -150,42 +151,42 @@ export default function ConversationPage() {
         });
 
       if (error) throw error;
-	  // Créer une notification pour le destinataire
-    // Récupérer l'info de la conversation pour savoir qui est le destinataire
-    const { data: conv } = await supabase
-      .from('conversations')
-      .select('painter_id, student_id')
-      .eq('id', conversationId)
-      .single();
-    
-    if (conv) {
-
       
-      // Si le destinataire est un painter, on prend son user_id
-      if (conv.student_id === user.id) {
-        // Je suis l'élève, le destinataire est le formateur
-        const { data: painter } = await supabase
-          .from('painters')
-          .select('user_id')
-          .eq('id', conv.painter_id)
-          .single();
-        
-        if (painter) {
+      // Créer une notification pour le destinataire
+      // Récupérer l'info de la conversation pour savoir qui est le destinataire
+      const { data: conv } = await supabase
+        .from('conversations')
+        .select('painter_id, student_id')
+        .eq('id', conversationId)
+        .single();
+      
+      if (conv) {
+        // Si le destinataire est un painter, on prend son user_id
+        if (conv.student_id === user.id) {
+          // Je suis l'élève, le destinataire est le formateur
+          const { data: painter } = await supabase
+            .from('painters')
+            .select('user_id')
+            .eq('id', conv.painter_id)
+            .single();
+          
+          if (painter) {
+            await notifyNewMessage({
+              recipientId: painter.user_id,
+              senderName: user.user_metadata?.full_name || user.email || 'Un utilisateur',
+              conversationId,
+            });
+          }
+        } else {
+          // Je suis le formateur, le destinataire est l'élève
           await notifyNewMessage({
-            recipientId: painter.user_id,
+            recipientId: conv.student_id,
             senderName: user.user_metadata?.full_name || user.email || 'Un utilisateur',
             conversationId,
           });
         }
-      } else {
-        // Je suis le formateur, le destinataire est l'élève
-        await notifyNewMessage({
-          recipientId: conv.student_id,
-          senderName: user.user_metadata?.full_name || user.email || 'Un utilisateur',
-          conversationId,
-        });
       }
-    }
+      
       setNewMessage('');
     } catch (error) {
       console.error('Erreur:', error);
@@ -199,7 +200,6 @@ export default function ConversationPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
   
-
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
@@ -209,62 +209,64 @@ export default function ConversationPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <Loader className="w-16 h-16 text-purple-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Chargement de la conversation...</p>
+          <Loader className="w-16 h-16 text-slate-600 animate-spin mx-auto mb-4" />
+          <p className="text-slate-600">Chargement de la conversation...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 flex flex-col">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-purple-100">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Link href="/messages">
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition">
-                <ArrowLeft className="w-5 h-5 text-gray-600" />
-              </button>
-            </Link>
-            {otherPerson && (
-              <div className="flex items-center gap-3 flex-1">
-                {otherPerson.image ? (
-                  <Image
-                    src={otherPerson.image}
-                    alt={otherPerson.name}
-                    width={40}
-                    height={40}
-                    className="rounded-full"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center text-white font-semibold">
-                    {otherPerson.name[0].toUpperCase()}
-                  </div>
-                )}
-                <h1 className="text-xl font-bold text-gray-800">{otherPerson.name}</h1>
-                
-                {/* Bouton Laisser un avis (uniquement pour les élèves) */}
-                {painterInfo && user?.id !== painterInfo.id && (
-                  <button
-                    onClick={() => setReviewModalOpen(true)}
-                    className="ml-auto px-3 py-1.5 text-sm bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition font-medium"
-                  >
-                    Laisser un avis
-                  </button>
-                )}
-              </div>
-            )}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200/50 flex flex-col">
+      {/* ✅ Nouveau Header réutilisable */}
+      <Header user={user} />
+
+      {/* Sous-header avec info conversation */}
+      {otherPerson && (
+        <div className="bg-white border-b border-slate-200 shadow-sm">
+          <div className="max-w-4xl mx-auto px-4 py-3">
+            <div className="flex items-center gap-3">
+              <Link href="/messages">
+                <button className="p-2 hover:bg-slate-100 rounded-lg transition">
+                  <ArrowLeft className="w-5 h-5 text-slate-600" />
+                </button>
+              </Link>
+              
+              {otherPerson.image ? (
+                <Image
+                  src={otherPerson.image}
+                  alt={otherPerson.name}
+                  width={40}
+                  height={40}
+                  className="rounded-full"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 font-semibold border border-gray-300">
+                  {otherPerson.name[0].toUpperCase()}
+                </div>
+              )}
+              <h2 className="text-lg font-bold text-slate-800">{otherPerson.name}</h2>
+              
+              {/* Bouton Laisser un avis (uniquement pour les élèves) */}
+              {painterInfo && user?.id !== painterInfo.id && (
+                <button
+                  onClick={() => setReviewModalOpen(true)}
+                  className="ml-auto px-3 py-1.5 text-sm bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition font-medium"
+                >
+                  Laisser un avis
+                </button>
+              )}
+            </div>
           </div>
         </div>
-      </header>
+      )}
 
       {/* Messages Container */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
           {messages.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-500">Aucun message. Commencez la conversation !</p>
+              <p className="text-slate-500">Aucun message. Commencez la conversation !</p>
             </div>
           ) : (
             messages.map((message) => {
@@ -274,12 +276,12 @@ export default function ConversationPage() {
                   <div className={`max-w-[70%] ${isOwn ? 'order-2' : 'order-1'}`}>
                     <div className={`rounded-2xl px-4 py-3 ${
                       isOwn 
-                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' 
-                        : 'bg-white text-gray-800 shadow-md'
+                        ? 'bg-gradient-to-r from-slate-500 to-slate-700 text-white' 
+                        : 'bg-white text-slate-800 shadow-md'
                     }`}>
                       <p className="whitespace-pre-wrap break-words">{message.content}</p>
                     </div>
-                    <p className={`text-xs text-gray-500 mt-1 ${isOwn ? 'text-right' : 'text-left'}`}>
+                    <p className={`text-xs text-slate-500 mt-1 ${isOwn ? 'text-right' : 'text-left'}`}>
                       {formatTime(message.created_at)}
                     </p>
                   </div>
@@ -292,7 +294,7 @@ export default function ConversationPage() {
       </div>
 
       {/* Message Input */}
-      <div className="bg-white border-t border-purple-100 shadow-lg">
+      <div className="bg-white border-t border-slate-200 shadow-lg">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <form onSubmit={sendMessage} className="flex items-end gap-2">
             <textarea
@@ -305,14 +307,14 @@ export default function ConversationPage() {
                 }
               }}
               placeholder="Écrivez votre message..."
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-none"
+              className="flex-1 px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-400 focus:border-transparent outline-none resize-none"
               rows={1}
               style={{ minHeight: '48px', maxHeight: '120px' }}
             />
             <button
               type="submit"
               disabled={!newMessage.trim() || sending}
-              className="p-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-3 bg-gradient-to-r from-slate-500 to-slate-700 text-white rounded-xl hover:from-slate-300 hover:to-slate-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Send className="w-5 h-5" />
             </button>

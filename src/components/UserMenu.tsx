@@ -4,14 +4,36 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { User, LogOut, Settings, Palette, Shield, MessageCircle, Heart } from 'lucide-react';
 import Link from 'next/link';
-import type { UserMenuProps } from '@/types/supabase';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
-export default function UserMenu({ user }: UserMenuProps) {
+interface UserMenuProps {
+  user?: SupabaseUser | null;
+}
+
+export default function UserMenu({ user: propUser }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [user, setUser] = useState<SupabaseUser | null>(propUser || null);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  // Charger l'utilisateur si non fourni en prop
+  useEffect(() => {
+    const fetchUser = async () => {
+      if (!propUser) {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        setUser(currentUser);
+      } else {
+        setUser(propUser);
+      }
+    };
+
+    fetchUser();
+  }, [propUser]);
+
+  // ✅ CORRECTION: Ajouter 'user' dans les dépendances
   const fetchUnreadCount = useCallback(async () => {
+    if (!user) return;
+    
     try {
       const { data: conversations } = await supabase
         .from('conversations')
@@ -36,7 +58,7 @@ export default function UserMenu({ user }: UserMenuProps) {
     } catch (error) {
       console.error('Erreur lors du comptage des messages non lus:', error);
     }
-  }, [user.id]);
+  }, [user]); // ✅ Correction: Ajouter 'user' au lieu de 'user?.id'
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -50,6 +72,8 @@ export default function UserMenu({ user }: UserMenuProps) {
   }, []);
 
   useEffect(() => {
+    if (!user) return;
+    
     fetchUnreadCount();
     
     const channel = supabase
@@ -81,7 +105,7 @@ export default function UserMenu({ user }: UserMenuProps) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchUnreadCount]);
+  }, [fetchUnreadCount, user]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -97,6 +121,8 @@ export default function UserMenu({ user }: UserMenuProps) {
       .slice(0, 2);
   };
 
+  if (!user) return null;
+
   const userName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Utilisateur';
 
   return (
@@ -105,7 +131,8 @@ export default function UserMenu({ user }: UserMenuProps) {
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition relative"
       >
-        <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center text-white font-semibold">
+        {/* Avatar avec style cohérent en gris au lieu du dégradé violet-rose */}
+        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 font-semibold border border-gray-300">
           {getInitials(userName)}
         </div>
         <span className="hidden md:block text-gray-700 font-medium">
@@ -119,7 +146,7 @@ export default function UserMenu({ user }: UserMenuProps) {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
+        <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-[9999]">
           <div className="px-4 py-3 border-b border-gray-200">
             <p className="font-semibold text-gray-800">{userName}</p>
             <p className="text-sm text-gray-500 truncate">{user.email}</p>

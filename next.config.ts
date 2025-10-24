@@ -18,7 +18,16 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'api.dicebear.com',
       },
+	  {
+        protocol: 'https',
+        hostname: 'api.dicebear.com',
+        pathname: '/**',
+      },
     ],
+	// Autoriser les SVG depuis dicebear (images d'avatar)
+    dangerouslyAllowSVG: true,
+    contentDispositionType: 'attachment',
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 };
 

@@ -96,16 +96,16 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onFo
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition"
+          className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition"
         >
           <X className="w-6 h-6" />
         </button>
 
         <div className="mb-6">
-          <h2 className="text-3xl font-bold text-gray-800 mb-2">
+          <h2 className="text-3xl font-bold text-slate-800 mb-2">
             {mode === 'login' ? 'Connexion' : 'Inscription'}
           </h2>
-          <p className="text-gray-600">
+          <p className="text-slate-600">
             {mode === 'login' 
               ? 'Connectez-vous pour accéder à votre compte' 
               : 'Créez votre compte pour commencer'}
@@ -125,16 +125,16 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onFo
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === 'signup' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Nom complet
               </label>
               <div className="relative">
-                <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition"
+                  className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-400 focus:border-transparent outline-none transition"
                   placeholder="Jean Dupont"
                   required
                 />
@@ -143,16 +143,16 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onFo
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               Email
             </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition"
+                className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-400 focus:border-transparent outline-none transition"
                 placeholder="votre@email.com"
                 required
               />
@@ -160,23 +160,23 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onFo
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               Mot de passe
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition"
+                className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-400 focus:border-transparent outline-none transition"
                 placeholder="••••••••"
                 required
                 minLength={6}
               />
             </div>
             {mode === 'signup' && (
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 Minimum 6 caractères
               </p>
             )}
@@ -187,7 +187,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onFo
               <button
                 type="button"
                 onClick={onForgotPassword}
-                className="text-sm text-purple-600 hover:text-purple-700 transition font-medium"
+                className="text-sm text-slate-600 hover:text-slate-400 transition font-medium"
               >
                 Mot de passe oublié ?
               </button>
@@ -197,19 +197,19 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', onFo
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-gradient-to-r from-slate-500 to-slate-700 text-white py-3 rounded-lg font-semibold hover:from-slate-300 hover:to-slate-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Chargement...' : mode === 'login' ? 'Se connecter' : "S'inscrire"}
           </button>
         </form>
 
         <div className="mt-6 text-center">
-          <p className="text-gray-600">
+          <p className="text-slate-600">
             {mode === 'login' ? "Pas encore de compte ?" : "Déjà un compte ?"}
             {' '}
             <button
               onClick={switchMode}
-              className="text-purple-600 font-semibold hover:text-purple-700 transition"
+              className="text-slate-700 font-semibold hover:text-slate-500 transition"
             >
               {mode === 'login' ? "S'inscrire" : "Se connecter"}
             </button>
